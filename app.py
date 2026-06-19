@@ -1,0 +1,304 @@
+"""
+NFL Projection Engine — Flask Web App
+Run with: python3 app.py
+Then open: http://localhost:5000
+"""
+
+from flask import Flask, render_template, jsonify, request
+from projections import get_adjusted_projection
+from dst_scoring import calculate_dst_points, TRIPLE_FLEX_DST_SETTINGS
+import threading
+
+app = Flask(__name__)
+
+# ── In-memory cache so we only hit Sleeper once per server run ─────────────
+_cache = {
+    "players":  None,
+    "dst":      None,
+    "week":     None,
+    "season":   None,
+}
+_lock = threading.Lock()
+
+
+def _load_players(scoring="ppr"):
+    """Load players from Sleeper (or CSV fallback). Cached in memory."""
+    global _cache
+    with _lock:
+        if _cache["players"] is None:
+            from data_loader import load_players
+            _cache["players"] = load_players()
+    return _cache["players"]
+
+
+def _get_state():
+    from data_loader import load_players
+    _load_players()
+    return _cache.get("week"), _cache.get("season")
+
+
+def _build_player_list(scoring="ppr"):
+    """Build a sorted list of player dicts with projected points."""
+    from sleeper_api import SCORING_FIELDS, get_all_players, get_projections, _resolve_week_season
+
+    players_raw = _load_players()
+    pts_field = SCORING_FIELDS.get(scoring, "pts_ppr")
+
+    # If we already have players loaded we re-score them using the right field.
+    # For simplicity we re-fetch projections only when scoring changes.
+    try:
+        from sleeper_api import get_projections, _resolve_week_season, get_all_players
+        week, season, season_type = _resolve_week_season()
+        projections  = get_projections(season, week, season_type)
+        all_sleeper  = get_all_players()
+
+        # Build id->name reverse map from cache
+        name_to_id = {
+            info.get("full_name"): pid
+            for pid, info in all_sleeper.items()
+            if info.get("full_name")
+        }
+
+        result = []
+        for name, data in players_raw.items():
+            pid = name_to_id.get(name)
+            pts = None
+            if pid and pid in projections:
+                pts = projections[pid].get(pts_field) or projections[pid].get("pts_ppr")
+            if pts is None:
+                pts = data.get("ppg", 0)
+
+            adjusted = get_adjusted_projection(
+                data["position"], float(pts), data.get("opponent", "TBD")
+            )
+
+            result.append({
+                "name":          name,
+                "position":      data["position"],
+                "team":          data.get("team", ""),
+                "projection":    adjusted,
+                "injury_status": data.get("injury_status", "Active"),
+                "bye_week":      data.get("bye_week"),
+            })
+
+        result.sort(key=lambda p: p["projection"], reverse=True)
+        for i, p in enumerate(result):
+            p["rank"] = i + 1
+
+        return result, week, season
+
+    except Exception:
+        # Fallback: use pre-loaded ppg values
+        result = []
+        for name, data in players_raw.items():
+            adjusted = get_adjusted_projection(
+                data["position"], data.get("ppg", 0), data.get("opponent", "TBD")
+            )
+            result.append({
+                "name":          name,
+                "position":      data["position"],
+                "team":          data.get("team", ""),
+                "projection":    adjusted,
+                "injury_status": data.get("injury_status", "Active"),
+                "bye_week":      data.get("bye_week"),
+            })
+        result.sort(key=lambda p: p["projection"], reverse=True)
+        for i, p in enumerate(result):
+            p["rank"] = i + 1
+        return result, None, None
+
+
+# ── Routes ─────────────────────────────────────────────────────────────────
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/api/players")
+def api_players():
+    """
+    Returns ranked player list.
+    Query params:
+      scoring   = ppr | half_ppr | std  (default: ppr)
+      position  = ALL | QB | RB | WR | TE | K | FLEX  (default: ALL)
+      hide_bye  = true | false  (default: false)
+      week      = current NFL week (for bye filtering)
+      q         = search string (optional)
+    """
+    scoring  = request.args.get("scoring",  "ppr")
+    position = request.args.get("position", "ALL").upper()
+    hide_bye = request.args.get("hide_bye", "false").lower() == "true"
+    query    = request.args.get("q", "").lower().strip()
+
+    players, week, season = _build_player_list(scoring)
+
+    flex_positions = {"RB", "WR", "TE"}
+
+    filtered = []
+    for p in players:
+        # Position filter
+        if position == "FLEX" and p["position"] not in flex_positions:
+            continue
+        if position not in ("ALL", "FLEX") and p["position"] != position:
+            continue
+
+        # Bye week filter
+        if hide_bye and p.get("bye_week") and p["bye_week"] == week:
+            continue
+
+        # Search filter
+        if query and query not in p["name"].lower():
+            continue
+
+        filtered.append(p)
+
+    return jsonify({
+        "players": filtered,
+        "week":    week,
+        "season":  season,
+        "count":   len(filtered),
+    })
+
+
+@app.route("/api/dst")
+def api_dst():
+    """
+    Returns D/ST rankings with custom scoring.
+    Query param: settings (JSON string) — optional, defaults to Triple Flex settings.
+    """
+    import json as _json
+    custom_settings_str = request.args.get("settings", None)
+    settings = TRIPLE_FLEX_DST_SETTINGS
+
+    if custom_settings_str:
+        try:
+            settings = _json.loads(custom_settings_str)
+        except Exception:
+            pass
+
+    try:
+        from sleeper_api import fetch_dst_players
+        dst_list, week, season = fetch_dst_players()
+    except Exception as e:
+        return jsonify({"error": str(e), "dst": [], "week": None, "season": None})
+
+    scored = []
+    for dst in dst_list:
+        pts = calculate_dst_points(dst["stats"], settings)
+        scored.append({
+            "name":       dst["name"],
+            "team":       dst["team"],
+            "projection": pts,
+            "stats":      dst["stats"],
+        })
+
+    scored.sort(key=lambda d: d["projection"], reverse=True)
+    for i, d in enumerate(scored):
+        d["rank"] = i + 1
+
+    return jsonify({"dst": scored, "week": week, "season": season})
+
+
+@app.route("/api/lineup", methods=["POST"])
+def api_lineup():
+    """
+    Optimizes a starting lineup from a user's roster.
+
+    POST body (JSON):
+    {
+      "roster": ["Josh Allen", "Bijan Robinson", ...],
+      "settings": {
+        "scoring":         "ppr",
+        "qb":  1, "rb": 2, "wr": 2, "te": 1,
+        "flex": 1, "k": 1, "dst": 1,
+        "flex_positions":  ["RB", "WR", "TE"]
+      }
+    }
+    """
+    data     = request.get_json()
+    roster   = data.get("roster", [])
+    settings = data.get("settings", {})
+    scoring  = settings.get("scoring", "ppr")
+
+    players_all, week, season = _build_player_list(scoring)
+
+    # Look up each rostered player in the full list
+    name_map = {p["name"].lower(): p for p in players_all}
+    roster_players = []
+    not_found = []
+
+    for name in roster:
+        match = name_map.get(name.lower())
+        if match:
+            roster_players.append(match)
+        else:
+            not_found.append(name)
+
+    starters, bench = _optimize_lineup(roster_players, settings)
+
+    return jsonify({
+        "starters":  starters,
+        "bench":     bench,
+        "not_found": not_found,
+        "week":      week,
+        "season":    season,
+    })
+
+
+def _optimize_lineup(roster_players, settings):
+    """Greedy lineup optimizer — fills mandatory slots first, then FLEX."""
+    qb_slots   = int(settings.get("qb",   1))
+    rb_slots   = int(settings.get("rb",   2))
+    wr_slots   = int(settings.get("wr",   2))
+    te_slots   = int(settings.get("te",   1))
+    flex_slots = int(settings.get("flex", 1))
+    k_slots    = int(settings.get("k",    1))
+    dst_slots  = int(settings.get("dst",  1))
+    flex_pos   = set(settings.get("flex_positions", ["RB", "WR", "TE"]))
+
+    # Group by position, sorted by projection desc
+    by_pos = {}
+    for p in roster_players:
+        by_pos.setdefault(p["position"], []).append(p)
+    for pos in by_pos:
+        by_pos[pos].sort(key=lambda x: x["projection"], reverse=True)
+
+    starters = []
+    used     = set()
+
+    def fill_slot(slot_label, position, count):
+        available = [p for p in by_pos.get(position, []) if p["name"] not in used]
+        for p in available[:count]:
+            starters.append({**p, "slot": slot_label})
+            used.add(p["name"])
+
+    # Fill fixed position slots
+    fill_slot("QB",  "QB",  qb_slots)
+    fill_slot("K",   "K",   k_slots)
+    fill_slot("DST", "DEF", dst_slots)
+    fill_slot("RB",  "RB",  rb_slots)
+    fill_slot("WR",  "WR",  wr_slots)
+    fill_slot("TE",  "TE",  te_slots)
+
+    # Fill FLEX from eligible positions
+    flex_pool = []
+    for pos in flex_pos:
+        flex_pool.extend([p for p in by_pos.get(pos, []) if p["name"] not in used])
+    flex_pool.sort(key=lambda x: x["projection"], reverse=True)
+
+    for p in flex_pool[:flex_slots]:
+        starters.append({**p, "slot": "FLEX"})
+        used.add(p["name"])
+
+    # Everyone else is bench
+    bench = [{**p, "slot": "BN"} for p in roster_players if p["name"] not in used]
+    bench.sort(key=lambda x: x["projection"], reverse=True)
+
+    return starters, bench
+
+
+if __name__ == "__main__":
+    print("\nNFL Projection Engine starting...")
+    print("Open your browser to: http://localhost:5000\n")
+    app.run(debug=True, port=5000)

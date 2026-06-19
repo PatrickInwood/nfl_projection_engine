@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NFL Projection Engine</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-inner">
+      <div class="logo">🏈 NFL Projection Engine</div>
+      <div id="week-badge" class="week-badge">Loading...</div>
+    </div>
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="rankings">Rankings</button>
+      <button class="tab-btn" data-tab="dst">D/ST</button>
+      <button class="tab-btn" data-tab="search">Player Search</button>
+      <button class="tab-btn" data-tab="roster">Roster Builder</button>
+      <button class="tab-btn" data-tab="startsit">Start / Sit</button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ── RANKINGS TAB ──────────────────────────────────────────────────── -->
+    <section id="tab-rankings" class="tab-content active">
+      <div class="toolbar">
+        <div class="pos-filters">
+          <button class="pos-btn active" data-pos="ALL">All</button>
+          <button class="pos-btn" data-pos="QB">QB</button>
+          <button class="pos-btn" data-pos="RB">RB</button>
+          <button class="pos-btn" data-pos="WR">WR</button>
+          <button class="pos-btn" data-pos="TE">TE</button>
+          <button class="pos-btn" data-pos="FLEX">FLEX</button>
+          <button class="pos-btn" data-pos="K">K</button>
+        </div>
+        <div class="toolbar-right">
+          <select id="scoring-select" class="select-input">
+            <option value="ppr">PPR</option>
+            <option value="half_ppr">Half PPR</option>
+            <option value="std">Standard</option>
+          </select>
+          <label class="toggle-label">
+            <input type="checkbox" id="hide-bye" />
+            Hide Bye
+          </label>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="rankings-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>Pos</th>
+              <th>Team</th>
+              <th>Proj Pts</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="rankings-body">
+            <tr><td colspan="6" class="loading">Loading projections...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── D/ST TAB ───────────────────────────────────────────────────────── -->
+    <section id="tab-dst" class="tab-content">
+      <div class="card">
+        <h3>D/ST Scoring Settings</h3>
+        <p class="subtext">Defaults match Triple Flex league. Adjust any value and click Recalculate.</p>
+        <div class="dst-settings-grid" id="dst-settings-grid">
+          <!-- dynamically injected by JS -->
+        </div>
+        <button class="btn-primary" id="dst-recalc-btn">Recalculate</button>
+      </div>
+      <div class="table-wrap" style="margin-top:1rem;">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Defense</th><th>Team</th><th>Proj Pts</th></tr>
+          </thead>
+          <tbody id="dst-body">
+            <tr><td colspan="4" class="loading">Loading D/ST rankings...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── SEARCH TAB ─────────────────────────────────────────────────────── -->
+    <section id="tab-search" class="tab-content">
+      <div class="search-bar-wrap">
+        <input type="text" id="search-input" class="search-input" placeholder="Search any player..." autocomplete="off" />
+      </div>
+      <div id="search-results" class="player-cards"></div>
+    </section>
+
+    <!-- ── ROSTER BUILDER TAB ─────────────────────────────────────────────── -->
+    <section id="tab-roster" class="tab-content">
+      <div class="roster-layout">
+
+        <!-- Settings panel -->
+        <div class="card roster-settings">
+          <h3>League Settings</h3>
+          <label>Scoring Format
+            <select id="roster-scoring" class="select-input">
+              <option value="ppr">PPR</option>
+              <option value="half_ppr">Half PPR</option>
+              <option value="std">Standard</option>
+            </select>
+          </label>
+          <div class="slot-grid">
+            <label>QB <input type="number" id="slot-qb"   value="1" min="0" max="4" class="slot-input"/></label>
+            <label>RB <input type="number" id="slot-rb"   value="2" min="0" max="6" class="slot-input"/></label>
+            <label>WR <input type="number" id="slot-wr"   value="2" min="0" max="6" class="slot-input"/></label>
+            <label>TE <input type="number" id="slot-te"   value="1" min="0" max="4" class="slot-input"/></label>
+            <label>FLEX <input type="number" id="slot-flex" value="1" min="0" max="5" class="slot-input"/></label>
+            <label>K  <input type="number" id="slot-k"   value="1" min="0" max="2" class="slot-input"/></label>
+            <label>DST <input type="number" id="slot-dst" value="1" min="0" max="2" class="slot-input"/></label>
+          </div>
+          <div class="flex-eligible">
+            <span>FLEX eligible:</span>
+            <label><input type="checkbox" class="flex-pos-cb" value="RB" checked/> RB</label>
+            <label><input type="checkbox" class="flex-pos-cb" value="WR" checked/> WR</label>
+            <label><input type="checkbox" class="flex-pos-cb" value="TE" checked/> TE</label>
+          </div>
+          <button class="btn-secondary" id="triple-flex-btn">Load Triple Flex</button>
+        </div>
+
+        <!-- Roster input panel -->
+        <div class="card roster-input">
+          <h3>My Roster</h3>
+          <div class="player-search-wrap">
+            <input type="text" id="roster-search" class="search-input" placeholder="Add a player..." autocomplete="off" />
+            <ul id="roster-dropdown" class="dropdown hidden"></ul>
+          </div>
+          <ul id="my-roster-list" class="roster-list"></ul>
+          <div class="roster-actions">
+            <button class="btn-primary" id="optimize-btn">Optimize Lineup ▶</button>
+            <button class="btn-ghost" id="clear-roster-btn">Clear</button>
+          </div>
+        </div>
+
+        <!-- Lineup output panel -->
+        <div class="card roster-output">
+          <h3>Optimal Lineup</h3>
+          <div id="lineup-output" class="lineup-placeholder">
+            Add players and click Optimize Lineup to see your best starting lineup.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── START / SIT TAB ────────────────────────────────────────────────── -->
+    <section id="tab-startsit" class="tab-content">
+      <div class="startsit-wrap">
+        <h2>Start / Sit Comparison</h2>
+        <p class="subtext">Search for two players to compare this week's projections.</p>
+        <div class="ss-inputs">
+          <div class="ss-player-wrap">
+            <label>Player 1</label>
+            <input type="text" id="ss-p1" class="search-input" placeholder="e.g. Josh Allen" autocomplete="off"/>
+            <ul id="ss-p1-dropdown" class="dropdown hidden"></ul>
+            <div id="ss-p1-card" class="ss-card empty">—</div>
+          </div>
+          <div class="ss-vs">VS</div>
+          <div class="ss-player-wrap">
+            <label>Player 2</label>
+            <input type="text" id="ss-p2" class="search-input" placeholder="e.g. Lamar Jackson" autocomplete="off"/>
+            <ul id="ss-p2-dropdown" class="dropdown hidden"></ul>
+            <div id="ss-p2-card" class="ss-card empty">—</div>
+          </div>
+        </div>
+        <div id="ss-result" class="ss-result hidden"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
