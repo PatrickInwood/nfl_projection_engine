@@ -126,14 +126,25 @@ def fetch_week_players(scoring="ppr"):
         if position not in relevant_positions:
             continue
 
-        # Kickers don't earn PPR/half-PPR bonuses — Sleeper often leaves pts_ppr
-        # null for K and only populates pts_std. Try all three fields in order.
-        pts = (proj.get(pts_field)
-               or proj.get("pts_ppr")
-               or proj.get("pts_half_ppr")
-               or proj.get("pts_std"))
-        if pts is None or float(pts) < MIN_PROJECTION:
-            continue
+        if position == "K":
+            # Kickers have no PPR bonus. Try pts_std first, then compute from
+            # raw kicker fields (fgm + xpt) as last resort. No min threshold.
+            pts = (proj.get("pts_std")
+                   or proj.get("pts_ppr")
+                   or proj.get("pts_half_ppr"))
+            if not pts:
+                # Estimate from raw fields: ~3 pts/FG + 1 pt/XP
+                fgm = proj.get("fgm", 0) or 0
+                xpt = proj.get("xpt", 0) or 0
+                pts = fgm * 3 + xpt if (fgm or xpt) else None
+            if pts is None:
+                continue   # truly no data for this kicker
+        else:
+            pts = (proj.get(pts_field)
+                   or proj.get("pts_ppr")
+                   or proj.get("pts_std"))
+            if pts is None or float(pts) < MIN_PROJECTION:
+                continue
 
         name = info.get("full_name")
         team = info.get("team")
