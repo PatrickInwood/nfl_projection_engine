@@ -349,6 +349,62 @@ Give a concise 2-3 sentence Start/Sit recommendation. Lead with who to start and
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/trade", methods=["POST"])
+def api_trade():
+    """
+    Uses Claude to evaluate a fantasy trade.
+
+    POST body (JSON):
+    {
+      "giving":   [{ "name": "...", "position": "...", "team": "...", "projection": 0.0, "rank": 1 }, ...],
+      "receiving": [...],
+      "scoring":  "ppr"
+    }
+    """
+    import os
+    import anthropic as _anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY not set on server."}), 500
+
+    data      = request.get_json()
+    giving    = data.get("giving", [])
+    receiving = data.get("receiving", [])
+    scoring   = data.get("scoring", "ppr").upper()
+
+    if not giving or not receiving:
+        return jsonify({"error": "Both sides of the trade must have at least one player."}), 400
+
+    def fmt_players(players):
+        lines = []
+        for p in players:
+            lines.append(f"  - {p['name']} ({p['position']}, {p['team']}) — Proj: {p['projection']:.2f} pts, Rank #{p['rank']}")
+        return "\n".join(lines)
+
+    prompt = f"""You are an expert fantasy football analyst evaluating a trade in a {scoring} league.
+
+YOU ARE GIVING:
+{fmt_players(giving)}
+
+YOU ARE RECEIVING:
+{fmt_players(receiving)}
+
+Evaluate this trade from the perspective of the person giving away the first group and receiving the second group. Give a clear verdict (Win / Lose / Fair) and 2-3 sentences of reasoning. Consider total projected value, positional scarcity, and roster balance. Be direct and confident."""
+
+    try:
+        client  = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=250,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        analysis = message.content[0].text
+        return jsonify({"analysis": analysis})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))

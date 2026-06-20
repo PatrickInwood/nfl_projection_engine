@@ -513,6 +513,78 @@ tbody td { padding: .6rem 1rem; }
 }
 .claude-analysis.hidden { display: none; }
 
+/* ── Trade Analyzer ─────────────────────────────────────────────────── */
+.trade-wrap { max-width: 860px; margin: 0 auto; }
+.trade-wrap h2 { margin-bottom: .25rem; }
+
+.trade-layout {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: start;
+  margin: 1.25rem 0 1rem;
+}
+
+.trade-vs {
+  font-size: 1.5rem;
+  color: #94a3b8;
+  padding-top: 2.5rem;
+  text-align: center;
+}
+
+.trade-side h3 { font-size: .95rem; font-weight: 700; margin-bottom: .75rem; }
+
+.trade-list { list-style: none; margin-top: .5rem; min-height: 48px; }
+
+.trade-empty {
+  color: #94a3b8;
+  font-size: .82rem;
+  padding: .4rem 0;
+}
+
+.trade-player-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: .85rem;
+}
+.trade-player-row:last-child { border-bottom: none; }
+
+.tpr-info { display: flex; flex-direction: column; gap: .15rem; flex: 1; }
+.tpr-name { font-weight: 600; color: #0f172a; }
+.tpr-meta { font-size: .75rem; color: #64748b; display: flex; align-items: center; gap: .3rem; }
+
+.trade-controls {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.trade-result { margin-top: .5rem; }
+.trade-result.hidden { display: none; }
+
+.trade-analysis {
+  background: #1a1a2e;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 1.1rem 1.4rem;
+  font-size: .92rem;
+  line-height: 1.6;
+  border-left: 4px solid #4fc3f7;
+}
+.trade-analysis.verdict-win  { border-left-color: #4ade80; }
+.trade-analysis.verdict-lose { border-left-color: #ef4444; }
+.trade-analysis.verdict-fair { border-left-color: #fbbf24; }
+
+@media (max-width: 640px) {
+  .trade-layout { grid-template-columns: 1fr; }
+  .trade-vs { padding-top: 0; font-size: 1.2rem; }
+}
+
 /* ── Mobile responsive ──────────────────────────────────────────────── */
 @media (max-width: 640px) {
   /* Header */

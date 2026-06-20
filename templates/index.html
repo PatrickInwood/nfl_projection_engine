@@ -20,6 +20,7 @@
       <button class="tab-btn" data-tab="search">Player Search</button>
       <button class="tab-btn" data-tab="roster">Roster Builder</button>
       <button class="tab-btn" data-tab="startsit">Start / Sit</button>
+      <button class="tab-btn" data-tab="trade">Trade Analyzer</button>
     </nav>
   </header>
 
@@ -178,6 +179,53 @@
           </div>
         </div>
         <div id="ss-result" class="ss-result hidden"></div>
+      </div>
+    </section>
+
+    <!-- ── TRADE ANALYZER TAB ───────────────────────────────────────────────── -->
+    <section id="tab-trade" class="tab-content">
+      <div class="trade-wrap">
+        <h2>Trade Analyzer</h2>
+        <p class="subtext">Add players to each side of the trade and let Claude evaluate the deal.</p>
+
+        <div class="trade-layout">
+
+          <!-- YOU GIVE -->
+          <div class="card trade-side">
+            <h3>📤 You Give</h3>
+            <div class="player-search-wrap">
+              <input type="text" id="give-search" class="search-input" placeholder="Add a player..." autocomplete="off"/>
+              <ul id="give-dropdown" class="dropdown hidden"></ul>
+            </div>
+            <ul id="give-list" class="trade-list"></ul>
+          </div>
+
+          <div class="trade-vs">⇄</div>
+
+          <!-- YOU RECEIVE -->
+          <div class="card trade-side">
+            <h3>📥 You Receive</h3>
+            <div class="player-search-wrap">
+              <input type="text" id="receive-search" class="search-input" placeholder="Add a player..." autocomplete="off"/>
+              <ul id="receive-dropdown" class="dropdown hidden"></ul>
+            </div>
+            <ul id="receive-list" class="trade-list"></ul>
+          </div>
+
+        </div>
+
+        <!-- Controls -->
+        <div class="trade-controls">
+          <select id="trade-scoring" class="select-input">
+            <option value="ppr">PPR</option>
+            <option value="half_ppr">Half PPR</option>
+            <option value="std">Standard</option>
+          </select>
+          <button class="btn-primary" id="analyze-trade-btn">✦ Analyze Trade</button>
+          <button class="btn-ghost" id="clear-trade-btn">Clear</button>
+        </div>
+
+        <div id="trade-result" class="trade-result hidden"></div>
       </div>
     </section>
 

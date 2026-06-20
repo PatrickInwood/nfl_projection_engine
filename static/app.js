@@ -458,6 +458,137 @@ async function explainStartSit() {
   btn.disabled = false;
 }
 
+// ── Trade Analyzer ─────────────────────────────────────────────────────────
+let tradeSides = { give: [], receive: [] };
+
+function setupTradeSide(inputId, dropdownId, listId, side) {
+  const input    = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+
+  input.addEventListener("input", function () {
+    const q = this.value.toLowerCase().trim();
+    if (!q || !allPlayers.length) { dropdown.classList.add("hidden"); return; }
+
+    const already = [...tradeSides.give, ...tradeSides.receive].map(p => p.name);
+    const matches = allPlayers
+      .filter(p => p.name.toLowerCase().includes(q) && !already.includes(p.name))
+      .slice(0, 8);
+
+    if (!matches.length) { dropdown.classList.add("hidden"); return; }
+
+    dropdown.innerHTML = matches.map(p => `
+      <li data-name="${p.name}">
+        ${headshot(p.player_id, p.name, 28)}
+        ${posBadge(p.position)}
+        <span>${p.name}</span>
+        <span style="color:#94a3b8;font-size:.78rem;margin-left:auto;">${p.team} · ${p.projection.toFixed(1)} pts</span>
+      </li>
+    `).join("");
+    dropdown.classList.remove("hidden");
+  });
+
+  dropdown.addEventListener("click", e => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    const player = allPlayers.find(p => p.name === li.dataset.name);
+    if (!player) return;
+    tradeSides[side].push(player);
+    renderTradeList(listId, side);
+    input.value = "";
+    dropdown.classList.add("hidden");
+  });
+
+  document.addEventListener("click", e => {
+    if (!input.contains(e.target)) dropdown.classList.add("hidden");
+  });
+}
+
+function renderTradeList(listId, side) {
+  const list = document.getElementById(listId);
+  const players = tradeSides[side];
+  if (!players.length) {
+    list.innerHTML = `<li class="trade-empty">No players added yet.</li>`;
+    return;
+  }
+  list.innerHTML = players.map((p, i) => `
+    <li class="trade-player-row">
+      ${headshot(p.player_id, p.name, 32)}
+      <div class="tpr-info">
+        <span class="tpr-name">${p.name}</span>
+        <span class="tpr-meta">${posBadge(p.position)} ${p.team} · ${p.projection.toFixed(1)} pts</span>
+      </div>
+      <button class="remove-btn" onclick="removeTradePlayer('${side}', ${i}, '${listId}')">✕</button>
+    </li>
+  `).join("");
+}
+
+function removeTradePlayer(side, index, listId) {
+  tradeSides[side].splice(index, 1);
+  renderTradeList(listId, side);
+}
+
+setupTradeSide("give-search",    "give-dropdown",    "give-list",    "give");
+setupTradeSide("receive-search", "receive-dropdown", "receive-list", "receive");
+
+// Initialize empty lists
+renderTradeList("give-list",    "give");
+renderTradeList("receive-list", "receive");
+
+document.getElementById("clear-trade-btn").addEventListener("click", () => {
+  tradeSides = { give: [], receive: [] };
+  renderTradeList("give-list",    "give");
+  renderTradeList("receive-list", "receive");
+  document.getElementById("trade-result").classList.add("hidden");
+});
+
+document.getElementById("analyze-trade-btn").addEventListener("click", async () => {
+  const { give, receive } = tradeSides;
+  if (!give.length || !receive.length) {
+    alert("Add at least one player to each side of the trade.");
+    return;
+  }
+
+  const btn    = document.getElementById("analyze-trade-btn");
+  const result = document.getElementById("trade-result");
+  btn.disabled = true;
+  btn.textContent = "Analyzing…";
+  result.classList.add("hidden");
+
+  const scoring = document.getElementById("trade-scoring").value;
+
+  const toPayload = players => players.map(p => ({
+    name: p.name, position: p.position, team: p.team,
+    projection: p.projection, rank: p.rank,
+  }));
+
+  try {
+    const res = await fetch("/api/trade", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ giving: toPayload(give), receiving: toPayload(receive), scoring }),
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      result.innerHTML = `<p style="color:#ef4444;">${data.error}</p>`;
+    } else {
+      // Detect verdict keyword for color coding
+      const text = data.analysis;
+      const verdictClass = /\bwin\b/i.test(text) ? "verdict-win"
+                         : /\blose\b|\bloss\b/i.test(text) ? "verdict-lose"
+                         : "verdict-fair";
+      result.innerHTML = `<div class="trade-analysis ${verdictClass}">${text}</div>`;
+    }
+    result.classList.remove("hidden");
+  } catch (err) {
+    result.innerHTML = `<p style="color:#ef4444;">Could not reach Claude. Check API key.</p>`;
+    result.classList.remove("hidden");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "✦ Analyze Trade";
+});
+
 // ── D/ST settings UI + init ────────────────────────────────────────────────
 buildDstSettingsUI();
 renderRosterList();
