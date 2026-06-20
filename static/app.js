@@ -20,12 +20,16 @@ function weatherBadge(weather) {
   return `<span class="${cls}" title="${tip}">${label}</span>`;
 }
 
+// ESPN CDN team abbreviations differ from Sleeper for two teams
+const ESPN_ABBR = { JAX: "jac", WAS: "wsh" };
+
 function teamLogo(team, size = 36) {
-  if (!team) return `<span class="headshot-placeholder" style="width:${size}px;height:${size}px;border-radius:4px;"></span>`;
-  const url = `https://sleepercdn.com/images/team_logos/nfl/${team.toLowerCase()}.jpg`;
+  if (!team) return `<span class="headshot-placeholder" style="width:${size}px;height:${size}px;border-radius:6px;"></span>`;
+  const abbr = (ESPN_ABBR[team] || team).toLowerCase();
+  const url  = `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`;
   return `<img src="${url}" width="${size}" height="${size}"
-    style="border-radius:4px;object-fit:contain;background:#f1f5f9;"
-    onerror="this.src=''" alt="${team} logo">`;
+    style="border-radius:6px;object-fit:contain;background:#f1f5f9;padding:2px;"
+    onerror="this.style.visibility='hidden'" alt="${team}">`;
 }
 
 function headshot(player_id, name, size = 36) {
