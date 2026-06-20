@@ -20,9 +20,25 @@ def load_players():
         # Merge in any CSV players whose position is absent from the Sleeper result.
         # This guarantees kickers (and any other sparse position) always appear.
         positions_found = {p["position"] for p in players.values()}
+
+        # Build a name→player_id lookup from the Sleeper player cache so CSV
+        # players (kickers especially) can get a player_id for headshot display.
+        try:
+            from sleeper_api import get_all_players
+            all_sleeper = get_all_players()
+            name_to_pid = {
+                info.get("full_name"): pid
+                for pid, info in all_sleeper.items()
+                if info.get("full_name")
+            }
+        except Exception:
+            name_to_pid = {}
+
         merged = 0
         for name, data in csv_players.items():
             if data["position"] not in positions_found and name not in players:
+                if not data.get("player_id") and name in name_to_pid:
+                    data = {**data, "player_id": name_to_pid[name]}
                 players[name] = data
                 merged += 1
 

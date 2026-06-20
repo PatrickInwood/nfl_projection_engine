@@ -20,6 +20,14 @@ function weatherBadge(weather) {
   return `<span class="${cls}" title="${tip}">${label}</span>`;
 }
 
+function teamLogo(team, size = 36) {
+  if (!team) return `<span class="headshot-placeholder" style="width:${size}px;height:${size}px;border-radius:4px;"></span>`;
+  const url = `https://sleepercdn.com/images/team_logos/nfl/${team.toLowerCase()}.jpg`;
+  return `<img src="${url}" width="${size}" height="${size}"
+    style="border-radius:4px;object-fit:contain;background:#f1f5f9;"
+    onerror="this.src=''" alt="${team} logo">`;
+}
+
 function headshot(player_id, name, size = 36) {
   if (!player_id) return `<span class="headshot-placeholder" style="width:${size}px;height:${size}px;"></span>`;
   return `<img class="headshot" src="https://sleepercdn.com/content/nfl/players/thumb/${player_id}.jpg"
@@ -183,7 +191,7 @@ async function loadDstRankings() {
         <td style="color:#94a3b8;font-weight:600;">${d.rank ?? i + 1}</td>
         <td>
           <div style="display:flex;align-items:center;gap:.5rem;">
-            ${headshot(null, d.name, 36)}
+            ${teamLogo(d.team, 36)}
             <span style="font-weight:600;">${d.name}</span>
           </div>
         </td>
@@ -218,7 +226,12 @@ async function loadDst() {
   tbody.innerHTML = data.dst.map(d => `
     <tr>
       <td style="color:#94a3b8;font-weight:600;">${d.rank}</td>
-      <td><strong>${d.name}</strong></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:.5rem;">
+          ${teamLogo(d.team, 32)}
+          <strong>${d.name}</strong>
+        </div>
+      </td>
       <td>${posBadge("DEF")}</td>
       <td class="pts">${d.projection.toFixed(2)}</td>
     </tr>
@@ -386,9 +399,13 @@ function renderRosterList() {
 
   list.innerHTML = myRoster.map((name, i) => {
     const p      = allRosterPlayers.find(x => x.name === name);
+    const icon   = p?.position === "DEF"
+                    ? teamLogo(p.team, 28)
+                    : headshot(p?.player_id, name, 28);
     const isBench = i >= starterSlots;
-    return `<li class="${isBench ? "roster-bench-item" : ""}">
-      <span>${p ? posBadge(p.position) : ""} ${name}${isBench ? ' <span class="bench-tag">Bench</span>' : ""}</span>
+    return `<li class="${isBench ? "roster-bench-item" : ""}" style="display:flex;align-items:center;gap:.4rem;">
+      ${icon}
+      <span style="flex:1;">${p ? posBadge(p.position) : ""} ${name}${isBench ? ' <span class="bench-tag">Bench</span>' : ""}</span>
       <button class="remove-btn" onclick="removeFromRoster('${name.replace(/'/g,"\\'")}')">✕</button>
     </li>`;
   }).join("");
