@@ -48,9 +48,19 @@ def _build_player_list(scoring="ppr"):
     # For simplicity we re-fetch projections only when scoring changes.
     try:
         from sleeper_api import get_projections, _resolve_week_season, get_all_players
+        from stadium_info import get_stadium, STADIUMS
+        from weather import fetch_weather, get_weather_modifiers, DOME_WEATHER
+        from def_rankings import get_def_modifier, calculate_def_rankings
+
         week, season, season_type = _resolve_week_season()
         projections  = get_projections(season, week, season_type)
         all_sleeper  = get_all_players()
+
+        # Pre-fetch defensive rankings once for this request
+        def_rankings = calculate_def_rankings(season, week, season_type)
+
+        # Pre-fetch weather per home stadium (cache by home_team)
+        _weather_by_home = {}
 
         # Build id->name reverse map from cache
         name_to_id = {
@@ -68,18 +78,56 @@ def _build_player_list(scoring="ppr"):
             if pts is None:
                 pts = data.get("ppg", 0)
 
+            position  = data["position"]
+            team      = data.get("team", "")
+            home_team = data.get("home_team")
+            opponent  = data.get("opponent", "TBD")
+
+            # ── Weather ────────────────────────────────────────────────
+            weather = None
+            if home_team and home_team not in _weather_by_home:
+                stadium = get_stadium(home_team)
+                if stadium:
+                    if stadium["indoor"]:
+                        _weather_by_home[home_team] = DOME_WEATHER
+                    else:
+                        _weather_by_home[home_team] = fetch_weather(
+                            stadium["lat"], stadium["lon"]
+                        )
+                else:
+                    _weather_by_home[home_team] = None
+
+            if home_team:
+                weather = _weather_by_home.get(home_team)
+
+            weather_mods = get_weather_modifiers(weather)
+
+            # ── Defensive modifier ──────────────────────────────────────
+            # Extract opponent abbreviation from "vs. CHI" or "@ DAL"
+            opp_abbr = ""
+            if opponent not in ("TBD", ""):
+                parts = opponent.strip().split(" ")
+                opp_abbr = parts[-1] if parts else ""
+
+            def_mod = def_rankings.get(opp_abbr, {}).get(position, 0.0) if opp_abbr else 0.0
+
+            # ── Final adjusted projection ───────────────────────────────
             adjusted = get_adjusted_projection(
-                data["position"], float(pts), data.get("opponent", "TBD")
+                position, float(pts), opp_abbr or "TBD",
+                weather_modifiers=weather_mods,
+                def_modifier=def_mod,
             )
 
             result.append({
                 "name":          name,
-                "position":      data["position"],
-                "team":          data.get("team", ""),
+                "position":      position,
+                "team":          team,
+                "opponent":      opponent,
                 "projection":    adjusted,
                 "injury_status": data.get("injury_status", "Active"),
                 "bye_week":      data.get("bye_week"),
                 "player_id":     data.get("player_id"),
+                "weather":       weather,
             })
 
         result.sort(key=lambda p: p["projection"], reverse=True)
@@ -99,10 +147,12 @@ def _build_player_list(scoring="ppr"):
                 "name":          name,
                 "position":      data["position"],
                 "team":          data.get("team", ""),
+                "opponent":      data.get("opponent", "TBD"),
                 "projection":    adjusted,
                 "injury_status": data.get("injury_status", "Active"),
                 "bye_week":      data.get("bye_week"),
                 "player_id":     data.get("player_id"),
+                "weather":       None,
             })
         result.sort(key=lambda p: p["projection"], reverse=True)
         for i, p in enumerate(result):

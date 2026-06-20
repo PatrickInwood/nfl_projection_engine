@@ -8,6 +8,17 @@ let myRoster = [];     // names added to roster builder
 
 const POS_COLORS = { QB:"pos-QB", RB:"pos-RB", WR:"pos-WR", TE:"pos-TE", K:"pos-K", DEF:"pos-DEF" };
 
+function weatherBadge(weather) {
+  if (!weather) return "";
+  if (weather.indoor) return `<span class="weather-badge dome" title="Indoor stadium — no weather impact">🏟️ Dome</span>`;
+  const { icon, temp_f, wind_mph, precip_pct, condition } = weather;
+  const tip = `${condition} · ${temp_f}°F · Wind ${wind_mph} mph · ${precip_pct}% precip`;
+  const cls = wind_mph >= 20 || precip_pct >= 70 || temp_f <= 32 ? "weather-badge bad" : "weather-badge ok";
+  let label = `${icon} ${temp_f}°F`;
+  if (wind_mph >= 15) label += ` ${wind_mph}mph`;
+  return `<span class="${cls}" title="${tip}">${label}</span>`;
+}
+
 function headshot(player_id, name, size = 36) {
   if (!player_id) return `<span class="headshot-placeholder" style="width:${size}px;height:${size}px;"></span>`;
   return `<img class="headshot" src="https://sleepercdn.com/content/nfl/players/thumb/${player_id}.jpg"
@@ -99,7 +110,10 @@ function renderRankingsTable(players) {
       </td>
       <td>${posBadge(p.position)}</td>
       <td style="color:#64748b;">${p.team}</td>
-      <td style="color:#64748b;font-size:.82rem;">${p.opponent || "TBD"}</td>
+      <td style="color:#64748b;font-size:.82rem;">
+        ${p.opponent || "TBD"}
+        ${p.weather ? `<br>${weatherBadge(p.weather)}` : ""}
+      </td>
       <td class="pts">${p.projection.toFixed(2)}</td>
       <td>${injTag(p.injury_status)}</td>
     </tr>
@@ -182,6 +196,7 @@ document.getElementById("search-input").addEventListener("input", function () {
         <div>
           <div class="pc-name">${p.name}</div>
           <div>${posBadge(p.position)} <span style="color:#64748b;font-size:.78rem;">${p.team}</span> ${p.opponent && p.opponent !== "TBD" ? `<span style="color:#94a3b8;font-size:.75rem;">${p.opponent}</span>` : ""} ${injTag(p.injury_status)}</div>
+          ${p.weather ? `<div style="margin-top:.2rem;">${weatherBadge(p.weather)}</div>` : ""}
         </div>
       </div>
       <div class="pc-pts">${p.projection.toFixed(2)} pts</div>

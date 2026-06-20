@@ -70,8 +70,8 @@ def get_matchup_map(season, week, season_type="regular"):
             home = game.get("home")
             away = game.get("away")
             if home and away:
-                matchups[home] = f"vs. {away}"
-                matchups[away] = f"@ {home}"
+                matchups[home] = {"label": f"vs. {away}", "home": home, "opp": away}
+                matchups[away] = {"label": f"@ {home}",   "home": home, "opp": home}
         return matchups
     except Exception:
         return {}
@@ -136,13 +136,16 @@ def fetch_week_players(scoring="ppr"):
         if not name or not team:
             continue
 
-        opponent = matchup_map.get(team, "TBD")
+        matchup   = matchup_map.get(team, {})
+        opponent  = matchup.get("label", "TBD") if isinstance(matchup, dict) else "TBD"
+        home_team = matchup.get("home")         if isinstance(matchup, dict) else None
 
         players[name] = {
             "name":          name,
             "position":      position,
             "team":          team,
             "opponent":      opponent,
+            "home_team":     home_team,
             "ppg":           round(float(pts), 2),
             "injury_status": info.get("injury_status") or "Active",
             "bye_week":      info.get("bye_week"),
