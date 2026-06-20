@@ -125,6 +125,7 @@
             <label>FLEX <input type="number" id="slot-flex" value="1" min="0" max="5" class="slot-input"/></label>
             <label>K  <input type="number" id="slot-k"   value="1" min="0" max="2" class="slot-input"/></label>
             <label>DST <input type="number" id="slot-dst" value="1" min="0" max="2" class="slot-input"/></label>
+            <label>Bench <input type="number" id="slot-bench" value="7" min="0" max="12" class="slot-input"/></label>
           </div>
           <div class="flex-eligible">
             <span>FLEX eligible:</span>
@@ -137,15 +138,17 @@
 
         <!-- Roster input panel -->
         <div class="card roster-input">
-          <h3>My Roster</h3>
+          <h3>My Full Roster</h3>
+          <p class="subtext">Add all players you own — starters <em>and</em> bench. The optimizer picks the best starting lineup from everyone here.</p>
           <div class="player-search-wrap">
-            <input type="text" id="roster-search" class="search-input" placeholder="Add a player..." autocomplete="off" />
+            <input type="text" id="roster-search" class="search-input" placeholder="Search and add a player..." autocomplete="off" />
             <ul id="roster-dropdown" class="dropdown hidden"></ul>
           </div>
+          <div id="roster-count-bar" class="roster-count-bar hidden"></div>
           <ul id="my-roster-list" class="roster-list"></ul>
           <div class="roster-actions">
             <button class="btn-primary" id="optimize-btn">Optimize Lineup ▶</button>
-            <button class="btn-ghost" id="clear-roster-btn">Clear</button>
+            <button class="btn-ghost" id="clear-roster-btn">Clear All</button>
           </div>
         </div>
 

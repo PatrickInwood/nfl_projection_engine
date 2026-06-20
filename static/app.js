@@ -209,13 +209,14 @@ document.getElementById("search-input").addEventListener("input", function () {
 
 // Load Triple Flex preset
 document.getElementById("triple-flex-btn").addEventListener("click", () => {
-  document.getElementById("slot-qb").value   = 1;
-  document.getElementById("slot-rb").value   = 2;
-  document.getElementById("slot-wr").value   = 2;
-  document.getElementById("slot-te").value   = 1;
-  document.getElementById("slot-flex").value = 3;
-  document.getElementById("slot-k").value    = 1;
-  document.getElementById("slot-dst").value  = 1;
+  document.getElementById("slot-qb").value    = 1;
+  document.getElementById("slot-rb").value    = 2;
+  document.getElementById("slot-wr").value    = 2;
+  document.getElementById("slot-te").value    = 1;
+  document.getElementById("slot-flex").value  = 3;
+  document.getElementById("slot-k").value     = 1;
+  document.getElementById("slot-dst").value   = 1;
+  document.getElementById("slot-bench").value = 7;
   document.getElementById("roster-scoring").value = "ppr";
   document.querySelectorAll(".flex-pos-cb").forEach(cb => cb.checked = true);
 });
@@ -268,15 +269,37 @@ function removeFromRoster(name) {
 }
 
 function renderRosterList() {
-  const list = document.getElementById("my-roster-list");
+  const list    = document.getElementById("my-roster-list");
+  const countBar = document.getElementById("roster-count-bar");
+
   if (!myRoster.length) {
     list.innerHTML = `<li style="color:#94a3b8;font-size:.83rem;padding:.5rem 0;">No players added yet.</li>`;
+    countBar.classList.add("hidden");
     return;
   }
-  list.innerHTML = myRoster.map(name => {
-    const p = allPlayers.find(x => x.name === name);
-    return `<li>
-      <span>${p ? posBadge(p.position) : ""} ${name}</span>
+
+  // Calculate expected starter count from slot inputs
+  const starterSlots = ["slot-qb","slot-rb","slot-wr","slot-te","slot-flex","slot-k","slot-dst"]
+    .reduce((sum, id) => sum + (parseInt(document.getElementById(id)?.value) || 0), 0);
+  const benchSlots  = parseInt(document.getElementById("slot-bench")?.value) || 0;
+  const total       = myRoster.length;
+  const statusCls   = total < starterSlots ? "count-short" : total >= starterSlots ? "count-ok" : "";
+
+  countBar.classList.remove("hidden");
+  countBar.innerHTML = `
+    <span class="${statusCls}">${total} player${total !== 1 ? "s" : ""} added</span>
+    <span class="count-divider">·</span>
+    <span>${starterSlots} starter slot${starterSlots !== 1 ? "s" : ""}</span>
+    <span class="count-divider">·</span>
+    <span>${benchSlots} bench slot${benchSlots !== 1 ? "s" : ""}</span>
+    ${total < starterSlots ? `<span class="count-warn"> — need ${starterSlots - total} more to fill starters</span>` : ""}
+  `;
+
+  list.innerHTML = myRoster.map((name, i) => {
+    const p      = allPlayers.find(x => x.name === name);
+    const isBench = i >= starterSlots;
+    return `<li class="${isBench ? "roster-bench-item" : ""}">
+      <span>${p ? posBadge(p.position) : ""} ${name}${isBench ? ' <span class="bench-tag">Bench</span>' : ""}</span>
       <button class="remove-btn" onclick="removeFromRoster('${name.replace(/'/g,"\\'")}')">✕</button>
     </li>`;
   }).join("");

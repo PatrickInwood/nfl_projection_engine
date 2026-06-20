@@ -695,6 +695,35 @@ tbody td { padding: .6rem 1rem; }
   flex-shrink: 0;
 }
 
+/* ── Roster count bar ────────────────────────────────────────────────── */
+.roster-count-bar {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .78rem;
+  color: #64748b;
+  padding: .35rem .5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: .5rem;
+  flex-wrap: wrap;
+}
+.roster-count-bar.hidden { display: none; }
+.count-divider { color: #cbd5e1; }
+.count-ok   { color: #16a34a; font-weight: 600; }
+.count-short { color: #dc2626; font-weight: 600; }
+.count-warn  { color: #b45309; font-weight: 500; }
+.bench-tag {
+  font-size: .68rem;
+  background: #e2e8f0;
+  color: #64748b;
+  padding: .05rem .3rem;
+  border-radius: 4px;
+  margin-left: .2rem;
+}
+.roster-bench-item { opacity: .75; }
+
 /* ── Weather badges ──────────────────────────────────────────────────── */
 .weather-badge {
   display: inline-block;
