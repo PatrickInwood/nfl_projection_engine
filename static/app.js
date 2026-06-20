@@ -84,8 +84,20 @@ async function loadRankings() {
   const res = await fetch(url);
   const data = await res.json();
 
-  allPlayers = data.players;  // cache for search and start/sit
-  allRosterPlayers = [...allPlayers]; // will be expanded with D/ST below
+  allPlayers = data.players;  // cache for start/sit and filtered views
+
+  // allRosterPlayers needs ALL positions (K, DEF, etc.) regardless of Rankings filter.
+  // Fetch once with position=ALL if the current filtered list would miss any positions.
+  if (pos === "ALL") {
+    allRosterPlayers = [...allPlayers];
+  } else if (!allRosterPlayers.length) {
+    // First load with a position filter — fetch full list in background
+    fetch(`/api/players?scoring=${scoring}&position=ALL`)
+      .then(r => r.json())
+      .then(d => { allRosterPlayers = d.players || []; })
+      .catch(() => { allRosterPlayers = [...allPlayers]; });
+  }
+  // (If allRosterPlayers already loaded from a prior ALL fetch, keep it)
 
   // Update week badge
   if (data.week) {
@@ -177,14 +189,21 @@ document.querySelector('[data-tab="dst"]').addEventListener("click", () => {
   loadDst();
 });
 
-// Roster Builder tab — ensure D/ST are in the search pool
-let rosterDstLoaded = false;
+// Roster Builder tab — ensure ALL positions (K + D/ST) are in the search pool
+let rosterPoolLoaded = false;
 document.querySelector('[data-tab="roster"]').addEventListener("click", async () => {
-  if (rosterDstLoaded) return;
+  if (rosterPoolLoaded) return;
   try {
-    const res  = await fetch("/api/dst");
-    const data = await res.json();
-    const dstPlayers = (data.dst || []).map(d => ({
+    // Fetch all skill positions (includes K) with current scoring
+    const scoring = document.getElementById("roster-scoring")?.value || "ppr";
+    const [skillRes, dstRes] = await Promise.all([
+      fetch(`/api/players?scoring=${scoring}&position=ALL`),
+      fetch("/api/dst"),
+    ]);
+    const skillData = await skillRes.json();
+    const dstData   = await dstRes.json();
+
+    const dstPlayers = (dstData.dst || []).map(d => ({
       name:          d.name,
       position:      "DEF",
       team:          d.team,
@@ -192,11 +211,14 @@ document.querySelector('[data-tab="roster"]').addEventListener("click", async ()
       injury_status: "Active",
       player_id:     null,
     }));
-    // Merge without duplicates
-    const existing = new Set(allRosterPlayers.map(p => p.name));
-    dstPlayers.forEach(d => { if (!existing.has(d.name)) allRosterPlayers.push(d); });
-    rosterDstLoaded = true;
-  } catch (e) { /* silent fail — D/ST just won't appear in search */ }
+
+    // Rebuild with all skill players (including K) + D/ST
+    allRosterPlayers = [...(skillData.players || allPlayers), ...dstPlayers];
+    rosterPoolLoaded = true;
+  } catch (e) {
+    // Fallback: at least ensure D/ST are present
+    allRosterPlayers = [...allPlayers];
+  }
 });
 
 // ── Player Search tab ──────────────────────────────────────────────────────
