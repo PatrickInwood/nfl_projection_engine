@@ -2,9 +2,10 @@
 // All player data is fetched once and stored in `allPlayers` for instant
 // filtering, search, and roster building without extra API calls.
 
-let allPlayers = [];   // full ranked list (current scoring format)
+let allPlayers = [];       // full ranked list (skill positions, current scoring)
+let allRosterPlayers = []; // allPlayers + D/ST for roster builder search
 let currentScoring = "ppr";
-let myRoster = [];     // names added to roster builder
+let myRoster = [];         // names added to roster builder
 
 const POS_COLORS = { QB:"pos-QB", RB:"pos-RB", WR:"pos-WR", TE:"pos-TE", K:"pos-K", DEF:"pos-DEF" };
 
@@ -83,7 +84,8 @@ async function loadRankings() {
   const res = await fetch(url);
   const data = await res.json();
 
-  allPlayers = data.players;  // cache for roster builder and search
+  allPlayers = data.players;  // cache for search and start/sit
+  allRosterPlayers = [...allPlayers]; // will be expanded with D/ST below
 
   // Update week badge
   if (data.week) {
@@ -175,6 +177,28 @@ document.querySelector('[data-tab="dst"]').addEventListener("click", () => {
   loadDst();
 });
 
+// Roster Builder tab — ensure D/ST are in the search pool
+let rosterDstLoaded = false;
+document.querySelector('[data-tab="roster"]').addEventListener("click", async () => {
+  if (rosterDstLoaded) return;
+  try {
+    const res  = await fetch("/api/dst");
+    const data = await res.json();
+    const dstPlayers = (data.dst || []).map(d => ({
+      name:          d.name,
+      position:      "DEF",
+      team:          d.team,
+      projection:    d.projection,
+      injury_status: "Active",
+      player_id:     null,
+    }));
+    // Merge without duplicates
+    const existing = new Set(allRosterPlayers.map(p => p.name));
+    dstPlayers.forEach(d => { if (!existing.has(d.name)) allRosterPlayers.push(d); });
+    rosterDstLoaded = true;
+  } catch (e) { /* silent fail — D/ST just won't appear in search */ }
+});
+
 // ── Player Search tab ──────────────────────────────────────────────────────
 document.getElementById("search-input").addEventListener("input", function () {
   const q = this.value.toLowerCase().trim();
@@ -227,9 +251,9 @@ const rosterDropdown = document.getElementById("roster-dropdown");
 
 rosterSearch.addEventListener("input", function () {
   const q = this.value.toLowerCase().trim();
-  if (!q || !allPlayers.length) { rosterDropdown.classList.add("hidden"); return; }
+  if (!q || !allRosterPlayers.length) { rosterDropdown.classList.add("hidden"); return; }
 
-  const matches = allPlayers
+  const matches = allRosterPlayers
     .filter(p => p.name.toLowerCase().includes(q) && !myRoster.includes(p.name))
     .slice(0, 10);
 
@@ -296,7 +320,7 @@ function renderRosterList() {
   `;
 
   list.innerHTML = myRoster.map((name, i) => {
-    const p      = allPlayers.find(x => x.name === name);
+    const p      = allRosterPlayers.find(x => x.name === name);
     const isBench = i >= starterSlots;
     return `<li class="${isBench ? "roster-bench-item" : ""}">
       <span>${p ? posBadge(p.position) : ""} ${name}${isBench ? ' <span class="bench-tag">Bench</span>' : ""}</span>

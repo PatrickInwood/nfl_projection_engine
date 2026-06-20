@@ -275,6 +275,28 @@ def api_lineup():
 
     players_all, week, season = _build_player_list(scoring)
 
+    # Also fetch D/ST players and add them to the lookup map
+    try:
+        from sleeper_api import fetch_dst_players
+        dst_list, _, _ = fetch_dst_players()
+        dst_scored = []
+        for dst in dst_list:
+            pts = calculate_dst_points(dst["stats"], TRIPLE_FLEX_DST_SETTINGS)
+            dst_scored.append({
+                "name":          dst["name"],
+                "position":      "DEF",
+                "team":          dst["team"],
+                "projection":    round(pts, 2),
+                "injury_status": "Active",
+                "bye_week":      None,
+                "player_id":     None,
+                "weather":       None,
+                "opponent":      "",
+            })
+        players_all = list(players_all) + dst_scored
+    except Exception:
+        pass
+
     # Look up each rostered player in the full list
     name_map = {p["name"].lower(): p for p in players_all}
     roster_players = []
