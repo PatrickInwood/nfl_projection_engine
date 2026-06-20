@@ -91,6 +91,7 @@ function renderRankingsTable(players) {
       </td>
       <td>${posBadge(p.position)}</td>
       <td style="color:#64748b;">${p.team}</td>
+      <td style="color:#64748b;font-size:.82rem;">${p.opponent || "TBD"}</td>
       <td class="pts">${p.projection.toFixed(2)}</td>
       <td>${injTag(p.injury_status)}</td>
     </tr>
@@ -172,7 +173,7 @@ document.getElementById("search-input").addEventListener("input", function () {
         ${headshot(p.player_id, p.name, 48)}
         <div>
           <div class="pc-name">${p.name}</div>
-          <div>${posBadge(p.position)} <span style="color:#64748b;font-size:.78rem;">${p.team}</span> ${injTag(p.injury_status)}</div>
+          <div>${posBadge(p.position)} <span style="color:#64748b;font-size:.78rem;">${p.team}</span> ${p.opponent && p.opponent !== "TBD" ? `<span style="color:#94a3b8;font-size:.75rem;">${p.opponent}</span>` : ""} ${injTag(p.injury_status)}</div>
         </div>
       </div>
       <div class="pc-pts">${p.projection.toFixed(2)} pts</div>

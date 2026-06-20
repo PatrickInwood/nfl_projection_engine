@@ -512,3 +512,49 @@ tbody td { padding: .6rem 1rem; }
   text-align: left;
 }
 .claude-analysis.hidden { display: none; }
+
+/* ── Mobile responsive ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Header */
+  .header-inner { padding: .6rem 1rem; }
+  .logo { font-size: 1rem; }
+  .week-badge { font-size: .72rem; padding: .2rem .55rem; }
+
+  /* Tab nav — scrollable, smaller text */
+  .tab-nav { padding: 0 .5rem; gap: 0; }
+  .tab-btn { padding: .55rem .75rem; font-size: .78rem; }
+
+  /* Main content padding */
+  main { padding: .75rem 1rem; }
+
+  /* Rankings toolbar — stack on mobile */
+  .toolbar { flex-direction: column; align-items: flex-start; gap: .5rem; }
+  .toolbar-right { width: 100%; justify-content: flex-start; }
+
+  /* Position filter buttons — allow wrap */
+  .pos-filters { gap: .3rem; }
+  .pos-btn { padding: .28rem .6rem; font-size: .75rem; }
+
+  /* Rankings table — hide Team & Opponent columns, keep essentials */
+  #rankings-table th:nth-child(4),
+  #rankings-table td:nth-child(4),
+  #rankings-table th:nth-child(5),
+  #rankings-table td:nth-child(5) { display: none; }
+
+  /* Headshot size in table */
+  .headshot { width: 28px !important; height: 28px !important; }
+
+  /* Roster builder — already stacks at 900px, just tighten spacing */
+  .slot-grid { grid-template-columns: 1fr 1fr; gap: .3rem .5rem; }
+
+  /* Start/Sit — stack vertically on very small screens */
+  .ss-inputs { flex-direction: column; gap: .75rem; }
+  .ss-vs { padding-top: 0; text-align: center; }
+
+  /* Player cards — full width on mobile */
+  .player-cards { flex-direction: column; }
+  .player-card { min-width: unset; width: 100%; }
+
+  /* D/ST settings grid — single column */
+  .dst-settings-grid { grid-template-columns: 1fr; }
+}

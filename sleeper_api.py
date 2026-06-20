@@ -52,6 +52,31 @@ def get_projections(season, week, season_type="regular"):
     return resp.json()
 
 
+def get_matchup_map(season, week, season_type="regular"):
+    """
+    Returns a dict mapping each NFL team abbreviation to its matchup string.
+    e.g. {"BUF": "vs. NYJ", "NYJ": "@ BUF", ...}
+    Returns empty dict if schedule unavailable (off-season or API error).
+    """
+    try:
+        url = f"{SLEEPER_BASE}/schedule/nfl/{season_type}/{season}/{week}"
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        games = resp.json()
+        if not games:
+            return {}
+        matchups = {}
+        for game in games:
+            home = game.get("home")
+            away = game.get("away")
+            if home and away:
+                matchups[home] = f"vs. {away}"
+                matchups[away] = f"@ {home}"
+        return matchups
+    except Exception:
+        return {}
+
+
 def _resolve_week_season():
     """Returns (week, season, season_type) for the current NFL period."""
     state = get_nfl_state()
@@ -85,6 +110,7 @@ def fetch_week_players(scoring="ppr"):
 
     all_players  = get_all_players()
     projections  = get_projections(season, week, season_type)
+    matchup_map  = get_matchup_map(season, week, season_type)
 
     players = {}
     relevant_positions = {"QB", "RB", "WR", "TE", "K"}
@@ -110,11 +136,13 @@ def fetch_week_players(scoring="ppr"):
         if not name or not team:
             continue
 
+        opponent = matchup_map.get(team, "TBD")
+
         players[name] = {
             "name":          name,
             "position":      position,
             "team":          team,
-            "opponent":      "TBD",
+            "opponent":      opponent,
             "ppg":           round(float(pts), 2),
             "injury_status": info.get("injury_status") or "Active",
             "bye_week":      info.get("bye_week"),
