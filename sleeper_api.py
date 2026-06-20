@@ -126,7 +126,12 @@ def fetch_week_players(scoring="ppr"):
         if position not in relevant_positions:
             continue
 
-        pts = proj.get(pts_field) or proj.get("pts_ppr")
+        # Kickers don't earn PPR/half-PPR bonuses — Sleeper often leaves pts_ppr
+        # null for K and only populates pts_std. Try all three fields in order.
+        pts = (proj.get(pts_field)
+               or proj.get("pts_ppr")
+               or proj.get("pts_half_ppr")
+               or proj.get("pts_std"))
         if pts is None or float(pts) < MIN_PROJECTION:
             continue
 
