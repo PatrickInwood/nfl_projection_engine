@@ -8,6 +8,13 @@ let myRoster = [];     // names added to roster builder
 
 const POS_COLORS = { QB:"pos-QB", RB:"pos-RB", WR:"pos-WR", TE:"pos-TE", K:"pos-K", DEF:"pos-DEF" };
 
+function headshot(player_id, name, size = 36) {
+  if (!player_id) return `<span class="headshot-placeholder" style="width:${size}px;height:${size}px;"></span>`;
+  return `<img class="headshot" src="https://sleepercdn.com/content/nfl/players/thumb/${player_id}.jpg"
+    alt="${name}" width="${size}" height="${size}"
+    onerror="this.style.display='none'">`;
+}
+
 // ── D/ST default settings (Triple Flex) ───────────────────────────────────
 const DEFAULT_DST = {
   pa0:5, pa1:4, pa7:3, pa14:1, pa18:0, pa22:0, pa28:-1, pa35:-3, pa46:-5,
@@ -76,7 +83,12 @@ function renderRankingsTable(players) {
   tbody.innerHTML = players.map((p, i) => `
     <tr>
       <td style="color:#94a3b8;font-weight:600;">${p.rank ?? i+1}</td>
-      <td><strong>${p.name}</strong></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:.5rem;">
+          ${headshot(p.player_id, p.name)}
+          <strong>${p.name}</strong>
+        </div>
+      </td>
       <td>${posBadge(p.position)}</td>
       <td style="color:#64748b;">${p.team}</td>
       <td class="pts">${p.projection.toFixed(2)}</td>
@@ -156,8 +168,13 @@ document.getElementById("search-input").addEventListener("input", function () {
 
   container.innerHTML = matches.map(p => `
     <div class="player-card">
-      <div class="pc-name">${p.name}</div>
-      <div>${posBadge(p.position)} <span style="color:#64748b;font-size:.78rem;">${p.team}</span> ${injTag(p.injury_status)}</div>
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem;">
+        ${headshot(p.player_id, p.name, 48)}
+        <div>
+          <div class="pc-name">${p.name}</div>
+          <div>${posBadge(p.position)} <span style="color:#64748b;font-size:.78rem;">${p.team}</span> ${injTag(p.injury_status)}</div>
+        </div>
+      </div>
       <div class="pc-pts">${p.projection.toFixed(2)} pts</div>
       <div class="pc-detail">Rank #${p.rank} overall</div>
     </div>
@@ -348,6 +365,7 @@ function setupStartSit(inputId, dropdownId, cardId) {
     dropdown.classList.add("hidden");
 
     card.innerHTML = `
+      ${headshot(selectedPlayer.player_id, selectedPlayer.name, 56)}
       <div class="sc-name">${selectedPlayer.name}</div>
       <div>${posBadge(selectedPlayer.position)} ${selectedPlayer.team}</div>
       <div class="sc-pts">${selectedPlayer.projection.toFixed(2)}</div>
@@ -397,7 +415,46 @@ function tryCompare() {
   result.innerHTML = `
     <div class="start-label">START: ${starter.name}</div>
     <div class="edge-label">+${edge} projected point edge over ${sitter.name}</div>
+    <button class="btn-why" id="why-btn" onclick="explainStartSit()">✦ Ask Claude Why</button>
+    <div id="claude-analysis" class="claude-analysis hidden"></div>
   `;
+}
+
+async function explainStartSit() {
+  const p1 = getP1();
+  const p2 = getP2();
+  if (!p1 || !p2) return;
+
+  const btn = document.getElementById("why-btn");
+  const box = document.getElementById("claude-analysis");
+  btn.disabled = true;
+  btn.textContent = "Analyzing…";
+  box.classList.add("hidden");
+
+  try {
+    const res = await fetch("/api/explain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        player1: { name: p1.name, position: p1.position, team: p1.team, projection: p1.projection, rank: p1.rank },
+        player2: { name: p2.name, position: p2.position, team: p2.team, projection: p2.projection, rank: p2.rank },
+        scoring: currentScoring,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      box.textContent = "Error: " + data.error;
+    } else {
+      box.textContent = data.analysis;
+    }
+    box.classList.remove("hidden");
+    btn.textContent = "✦ Ask Claude Again";
+  } catch (err) {
+    box.textContent = "Could not reach Claude. Check API key.";
+    box.classList.remove("hidden");
+    btn.textContent = "✦ Ask Claude Why";
+  }
+  btn.disabled = false;
 }
 
 // ── D/ST settings UI + init ────────────────────────────────────────────────

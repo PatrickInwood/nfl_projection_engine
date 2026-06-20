@@ -118,6 +118,7 @@ def fetch_week_players(scoring="ppr"):
             "ppg":           round(float(pts), 2),
             "injury_status": info.get("injury_status") or "Active",
             "bye_week":      info.get("bye_week"),
+            "player_id":     player_id,
         }
 
     return players, week, season

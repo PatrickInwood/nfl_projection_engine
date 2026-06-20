@@ -469,3 +469,46 @@ tbody td { padding: .6rem 1rem; }
 .ss-result .start-label { font-size: 1.1rem; font-weight: 700; color: #4ade80; }
 .ss-result .edge-label  { font-size: .85rem; color: #94a3b8; margin-top: .25rem; }
 .ss-result.hidden { display: none; }
+
+/* ── Headshots ──────────────────────────────────────────────────────── */
+.headshot {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #e2e8f0;
+}
+.headshot-placeholder {
+  display: inline-block;
+  border-radius: 50%;
+  background: #e2e8f0;
+  flex-shrink: 0;
+}
+
+/* ── Claude Why button + analysis ───────────────────────────────────── */
+.btn-why {
+  margin-top: .75rem;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  border: none;
+  padding: .45rem 1.1rem;
+  border-radius: 20px;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+  display: inline-block;
+}
+.btn-why:hover    { opacity: .85; }
+.btn-why:disabled { opacity: .5; cursor: default; }
+
+.claude-analysis {
+  margin-top: .75rem;
+  background: rgba(255,255,255,.08);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  font-size: .88rem;
+  color: #e2e8f0;
+  line-height: 1.55;
+  text-align: left;
+}
+.claude-analysis.hidden { display: none; }

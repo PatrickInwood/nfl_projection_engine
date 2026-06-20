@@ -79,6 +79,7 @@ def _build_player_list(scoring="ppr"):
                 "projection":    adjusted,
                 "injury_status": data.get("injury_status", "Active"),
                 "bye_week":      data.get("bye_week"),
+                "player_id":     data.get("player_id"),
             })
 
         result.sort(key=lambda p: p["projection"], reverse=True)
@@ -101,6 +102,7 @@ def _build_player_list(scoring="ppr"):
                 "projection":    adjusted,
                 "injury_status": data.get("injury_status", "Active"),
                 "bye_week":      data.get("bye_week"),
+                "player_id":     data.get("player_id"),
             })
         result.sort(key=lambda p: p["projection"], reverse=True)
         for i, p in enumerate(result):
@@ -296,6 +298,55 @@ def _optimize_lineup(roster_players, settings):
     bench.sort(key=lambda x: x["projection"], reverse=True)
 
     return starters, bench
+
+
+@app.route("/api/explain", methods=["POST"])
+def api_explain():
+    """
+    Uses Claude API to generate a natural-language Start/Sit explanation.
+
+    POST body (JSON):
+    {
+      "player1": { "name": "...", "position": "...", "team": "...", "projection": 0.0, "rank": 1 },
+      "player2": { "name": "...", "position": "...", "team": "...", "projection": 0.0, "rank": 1 },
+      "scoring": "ppr"
+    }
+    """
+    import os
+    import anthropic as _anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY not set on server."}), 500
+
+    data     = request.get_json()
+    p1       = data.get("player1", {})
+    p2       = data.get("player2", {})
+    scoring  = data.get("scoring", "PPR")
+
+    prompt = f"""You are an expert fantasy football analyst. A user is deciding who to START this week in a {scoring.upper()} league.
+
+Player 1: {p1['name']} ({p1['position']}, {p1['team']})
+  - Projected points: {p1['projection']:.2f}
+  - Overall rank: #{p1['rank']}
+
+Player 2: {p2['name']} ({p2['position']}, {p2['team']})
+  - Projected points: {p2['projection']:.2f}
+  - Overall rank: #{p2['rank']}
+
+Give a concise 2-3 sentence Start/Sit recommendation. Lead with who to start and why, mention the projection edge, and note anything relevant about matchup, format, or risk. Be direct and confident."""
+
+    try:
+        client   = _anthropic.Anthropic(api_key=api_key)
+        message  = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        analysis = message.content[0].text
+        return jsonify({"analysis": analysis})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
