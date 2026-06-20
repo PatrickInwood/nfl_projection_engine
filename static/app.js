@@ -80,6 +80,12 @@ async function loadRankings() {
   const hideBye  = document.getElementById("hide-bye").checked;
   currentScoring = scoring;
 
+  // D/ST uses its own endpoint and renderer
+  if (pos === "DEF") {
+    await loadDstRankings();
+    return;
+  }
+
   const url = `/api/players?scoring=${scoring}&position=${pos}&hide_bye=${hideBye}`;
   const res = await fetch(url);
   const data = await res.json();
@@ -87,17 +93,14 @@ async function loadRankings() {
   allPlayers = data.players;  // cache for start/sit and filtered views
 
   // allRosterPlayers needs ALL positions (K, DEF, etc.) regardless of Rankings filter.
-  // Fetch once with position=ALL if the current filtered list would miss any positions.
   if (pos === "ALL") {
     allRosterPlayers = [...allPlayers];
   } else if (!allRosterPlayers.length) {
-    // First load with a position filter — fetch full list in background
     fetch(`/api/players?scoring=${scoring}&position=ALL`)
       .then(r => r.json())
       .then(d => { allRosterPlayers = d.players || []; })
       .catch(() => { allRosterPlayers = [...allPlayers]; });
   }
-  // (If allRosterPlayers already loaded from a prior ALL fetch, keep it)
 
   // Update week badge
   if (data.week) {
@@ -154,6 +157,46 @@ function buildDstSettingsUI() {
       <input type="number" id="dst-${key}" value="${val}" step="1"/>
     </div>
   `).join("");
+}
+
+async function loadDstRankings() {
+  // Renders D/ST into the main Rankings table (same layout, no scoring dropdowns)
+  const tbody = document.getElementById("rankings-body");
+  tbody.innerHTML = `<tr><td colspan="7" class="loading">Loading D/ST rankings…</td></tr>`;
+
+  try {
+    const res  = await fetch("/api/dst");
+    const data = await res.json();
+    const list = data.dst || [];
+
+    if (data.week) {
+      document.getElementById("week-badge").textContent = `Week ${data.week} · ${data.season}`;
+    }
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="loading">No D/ST data available.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map((d, i) => `
+      <tr>
+        <td style="color:#94a3b8;font-weight:600;">${d.rank ?? i + 1}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:.5rem;">
+            ${headshot(null, d.name, 36)}
+            <span style="font-weight:600;">${d.name}</span>
+          </div>
+        </td>
+        <td>${posBadge("DEF")}</td>
+        <td style="color:#64748b;">${d.team}</td>
+        <td style="color:#64748b;font-size:.82rem;">—</td>
+        <td class="pts">${d.projection.toFixed(2)}</td>
+        <td>—</td>
+      </tr>`).join("");
+  } catch (e) {
+    document.getElementById("rankings-body").innerHTML =
+      `<tr><td colspan="7" class="loading">Error loading D/ST data.</td></tr>`;
+  }
 }
 
 async function loadDst() {
