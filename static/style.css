@@ -629,4 +629,68 @@ tbody td { padding: .6rem 1rem; }
 
   /* D/ST settings grid — single column */
   .dst-settings-grid { grid-template-columns: 1fr; }
+
+  /* Waiver + News grid — single column */
+  .waiver-layout { grid-template-columns: 1fr; }
+  .news-grid     { grid-template-columns: 1fr; }
+}
+
+/* ── Waiver Wire ─────────────────────────────────────────────────────── */
+.waiver-wrap { max-width: 900px; margin: 0 auto; }
+.waiver-wrap h2 { margin-bottom: .25rem; }
+
+.waiver-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.25rem 0 0;
+}
+
+.optional-tag {
+  font-size: .72rem;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-left: .4rem;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+/* ── Injury Report / News ────────────────────────────────────────────── */
+.news-wrap { max-width: 900px; margin: 0 auto; }
+
+.news-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: .5rem;
+}
+
+.news-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: .85rem;
+}
+.news-row:last-child { border-bottom: none; }
+
+.news-info { display: flex; flex-direction: column; gap: .12rem; flex: 1; }
+.news-name { font-weight: 600; color: #0f172a; }
+.news-meta { font-size: .75rem; color: #64748b; display: flex; align-items: center; gap: .3rem; }
+
+.trend-rank {
+  font-size: .78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.trend-count {
+  font-size: .78rem;
+  font-weight: 700;
+  color: #4ade80;
+  flex-shrink: 0;
 }

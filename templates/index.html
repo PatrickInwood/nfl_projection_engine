@@ -21,6 +21,8 @@
       <button class="tab-btn" data-tab="roster">Roster Builder</button>
       <button class="tab-btn" data-tab="startsit">Start / Sit</button>
       <button class="tab-btn" data-tab="trade">Trade Analyzer</button>
+      <button class="tab-btn" data-tab="waiver">Waiver Wire</button>
+      <button class="tab-btn" data-tab="news">Injury Report</button>
     </nav>
   </header>
 
@@ -226,6 +228,88 @@
         </div>
 
         <div id="trade-result" class="trade-result hidden"></div>
+      </div>
+    </section>
+
+    <!-- ── WAIVER WIRE TAB ───────────────────────────────────────────────────── -->
+    <section id="tab-waiver" class="tab-content">
+      <div class="waiver-wrap">
+        <h2>Waiver Wire Assistant</h2>
+        <p class="subtext">Add available players and let Claude recommend the best pickups.</p>
+
+        <div class="waiver-layout">
+
+          <!-- Available players (required) -->
+          <div class="card">
+            <h3>📋 Available Players</h3>
+            <p class="subtext">Players you're considering off waivers.</p>
+            <div class="player-search-wrap">
+              <input type="text" id="waiver-avail-search" class="search-input" placeholder="Add a player..." autocomplete="off"/>
+              <ul id="waiver-avail-dropdown" class="dropdown hidden"></ul>
+            </div>
+            <ul id="waiver-avail-list" class="trade-list"></ul>
+          </div>
+
+          <!-- My roster (optional) -->
+          <div class="card">
+            <h3>🗂 My Roster <span class="optional-tag">optional</span></h3>
+            <p class="subtext">Helps Claude factor in roster construction.</p>
+            <div class="player-search-wrap">
+              <input type="text" id="waiver-roster-search" class="search-input" placeholder="Add a player..." autocomplete="off"/>
+              <ul id="waiver-roster-dropdown" class="dropdown hidden"></ul>
+            </div>
+            <ul id="waiver-roster-list" class="trade-list"></ul>
+          </div>
+
+        </div>
+
+        <!-- Controls -->
+        <div class="trade-controls" style="margin-top:1rem;">
+          <select id="waiver-scoring" class="select-input">
+            <option value="ppr">PPR</option>
+            <option value="half_ppr">Half PPR</option>
+            <option value="std">Standard</option>
+          </select>
+          <select id="waiver-need" class="select-input">
+            <option value="">Any position</option>
+            <option value="QB">Need QB</option>
+            <option value="RB">Need RB</option>
+            <option value="WR">Need WR</option>
+            <option value="TE">Need TE</option>
+            <option value="K">Need K</option>
+          </select>
+          <button class="btn-primary" id="waiver-analyze-btn">✦ Get Recommendations</button>
+          <button class="btn-ghost" id="waiver-clear-btn">Clear</button>
+        </div>
+
+        <div id="waiver-result" class="trade-result hidden"></div>
+      </div>
+    </section>
+
+    <!-- ── INJURY REPORT TAB ──────────────────────────────────────────────────── -->
+    <section id="tab-news" class="tab-content">
+      <div class="news-wrap">
+        <div class="news-grid">
+
+          <!-- Injury report -->
+          <div class="card">
+            <h3>🚑 Injury Report</h3>
+            <p class="subtext">Players with active injury designations this week.</p>
+            <div id="injury-list">
+              <div class="loading">Loading injury report...</div>
+            </div>
+          </div>
+
+          <!-- Trending adds -->
+          <div class="card">
+            <h3>📈 Trending Adds</h3>
+            <p class="subtext">Most added players on Sleeper in the last 24 hours.</p>
+            <div id="trending-list">
+              <div class="loading">Loading trending players...</div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </section>
 

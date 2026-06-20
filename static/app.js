@@ -33,6 +33,14 @@ const DST_LABELS = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+function renderMarkdown(text) {
+  return text
+    .replace(/^#{1,3}\s+(.+)$/gm, '<strong>$1</strong>')  // # headers → bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')      // **bold**
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')                  // *italic*
+    .replace(/\n/g, '<br>');                               // newlines
+}
+
 function posBadge(pos) {
   const cls = POS_COLORS[pos] || "";
   return `<span class="pos-badge ${cls}">${pos}</span>`;
@@ -446,7 +454,7 @@ async function explainStartSit() {
     if (data.error) {
       box.textContent = "Error: " + data.error;
     } else {
-      box.textContent = data.analysis;
+      box.innerHTML = renderMarkdown(data.analysis);
     }
     box.classList.remove("hidden");
     btn.textContent = "✦ Ask Claude Again";
@@ -577,7 +585,7 @@ document.getElementById("analyze-trade-btn").addEventListener("click", async () 
       const verdictClass = /\bwin\b/i.test(text) ? "verdict-win"
                          : /\blose\b|\bloss\b/i.test(text) ? "verdict-lose"
                          : "verdict-fair";
-      result.innerHTML = `<div class="trade-analysis ${verdictClass}">${text}</div>`;
+      result.innerHTML = `<div class="trade-analysis ${verdictClass}">${renderMarkdown(text)}</div>`;
     }
     result.classList.remove("hidden");
   } catch (err) {
@@ -588,6 +596,180 @@ document.getElementById("analyze-trade-btn").addEventListener("click", async () 
   btn.disabled = false;
   btn.textContent = "✦ Analyze Trade";
 });
+
+// ── Waiver Wire Assistant ──────────────────────────────────────────────────
+let waiverSides = { avail: [], roster: [] };
+
+function setupWaiverSide(inputId, dropdownId, listId, side) {
+  const input    = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+
+  input.addEventListener("input", function () {
+    const q = this.value.toLowerCase().trim();
+    if (!q || !allPlayers.length) { dropdown.classList.add("hidden"); return; }
+
+    const already = [...waiverSides.avail, ...waiverSides.roster].map(p => p.name);
+    const matches = allPlayers
+      .filter(p => p.name.toLowerCase().includes(q) && !already.includes(p.name))
+      .slice(0, 8);
+
+    if (!matches.length) { dropdown.classList.add("hidden"); return; }
+
+    dropdown.innerHTML = matches.map(p => `
+      <li data-name="${p.name}">
+        ${headshot(p.player_id, p.name, 28)}
+        ${posBadge(p.position)}
+        <span>${p.name}</span>
+        <span style="color:#94a3b8;font-size:.78rem;margin-left:auto;">${p.team} · ${p.projection.toFixed(1)} pts</span>
+      </li>
+    `).join("");
+    dropdown.classList.remove("hidden");
+  });
+
+  dropdown.addEventListener("click", e => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    const player = allPlayers.find(p => p.name === li.dataset.name);
+    if (!player) return;
+    waiverSides[side].push(player);
+    renderWaiverList(listId, side);
+    input.value = "";
+    dropdown.classList.add("hidden");
+  });
+
+  document.addEventListener("click", e => {
+    if (!input.contains(e.target)) dropdown.classList.add("hidden");
+  });
+}
+
+function renderWaiverList(listId, side) {
+  const list    = document.getElementById(listId);
+  const players = waiverSides[side];
+  if (!players.length) {
+    list.innerHTML = `<li class="trade-empty">No players added yet.</li>`;
+    return;
+  }
+  list.innerHTML = players.map((p, i) => `
+    <li class="trade-player-row">
+      ${headshot(p.player_id, p.name, 32)}
+      <div class="tpr-info">
+        <span class="tpr-name">${p.name}</span>
+        <span class="tpr-meta">${posBadge(p.position)} ${p.team} · ${p.projection.toFixed(1)} pts</span>
+      </div>
+      <button class="remove-btn" onclick="removeWaiverPlayer('${side}', ${i}, '${listId}')">✕</button>
+    </li>
+  `).join("");
+}
+
+function removeWaiverPlayer(side, index, listId) {
+  waiverSides[side].splice(index, 1);
+  renderWaiverList(listId, side);
+}
+
+setupWaiverSide("waiver-avail-search",  "waiver-avail-dropdown",  "waiver-avail-list",  "avail");
+setupWaiverSide("waiver-roster-search", "waiver-roster-dropdown", "waiver-roster-list", "roster");
+renderWaiverList("waiver-avail-list",  "avail");
+renderWaiverList("waiver-roster-list", "roster");
+
+document.getElementById("waiver-clear-btn").addEventListener("click", () => {
+  waiverSides = { avail: [], roster: [] };
+  renderWaiverList("waiver-avail-list",  "avail");
+  renderWaiverList("waiver-roster-list", "roster");
+  document.getElementById("waiver-result").classList.add("hidden");
+});
+
+document.getElementById("waiver-analyze-btn").addEventListener("click", async () => {
+  if (!waiverSides.avail.length) {
+    alert("Add at least one available player to analyze.");
+    return;
+  }
+
+  const btn    = document.getElementById("waiver-analyze-btn");
+  const result = document.getElementById("waiver-result");
+  btn.disabled = true;
+  btn.textContent = "Analyzing…";
+  result.classList.add("hidden");
+
+  const toPayload = players => players.map(p => ({
+    name: p.name, position: p.position, team: p.team,
+    projection: p.projection, rank: p.rank,
+  }));
+
+  try {
+    const res = await fetch("/api/waiver", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        available: toPayload(waiverSides.avail),
+        roster:    toPayload(waiverSides.roster),
+        need:      document.getElementById("waiver-need").value,
+        scoring:   document.getElementById("waiver-scoring").value,
+      }),
+    });
+    const data = await res.json();
+    result.innerHTML = data.error
+      ? `<p style="color:#ef4444;">${data.error}</p>`
+      : `<div class="trade-analysis verdict-win">${renderMarkdown(data.analysis)}</div>`;
+    result.classList.remove("hidden");
+  } catch (err) {
+    result.innerHTML = `<p style="color:#ef4444;">Could not reach Claude. Check API key.</p>`;
+    result.classList.remove("hidden");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "✦ Get Recommendations";
+});
+
+// ── Injury Report + Trending ───────────────────────────────────────────────
+document.querySelector('[data-tab="news"]').addEventListener("click", loadNews);
+
+async function loadNews() {
+  const injuryEl  = document.getElementById("injury-list");
+  const trendEl   = document.getElementById("trending-list");
+  injuryEl.innerHTML  = `<div class="loading">Loading...</div>`;
+  trendEl.innerHTML   = `<div class="loading">Loading...</div>`;
+
+  try {
+    const res  = await fetch("/api/news");
+    const data = await res.json();
+
+    // Injury report
+    if (!data.injured || !data.injured.length) {
+      injuryEl.innerHTML = `<p class="subtext">No injury designations found for this week.</p>`;
+    } else {
+      injuryEl.innerHTML = data.injured.map(p => `
+        <div class="news-row">
+          ${headshot(p.player_id, p.name, 36)}
+          <div class="news-info">
+            <span class="news-name">${p.name}</span>
+            <span class="news-meta">${posBadge(p.position)} ${p.team}</span>
+          </div>
+          <span class="inj-tag">${p.injury_status}</span>
+        </div>
+      `).join("");
+    }
+
+    // Trending adds
+    if (!data.trending || !data.trending.length) {
+      trendEl.innerHTML = `<p class="subtext">Trending data unavailable (off-season or API limit).</p>`;
+    } else {
+      trendEl.innerHTML = data.trending.map((p, i) => `
+        <div class="news-row">
+          <span class="trend-rank">${i + 1}</span>
+          ${headshot(p.player_id, p.name, 36)}
+          <div class="news-info">
+            <span class="news-name">${p.name}</span>
+            <span class="news-meta">${posBadge(p.position)} ${p.team}</span>
+          </div>
+          <span class="trend-count">+${p.add_count.toLocaleString()}</span>
+        </div>
+      `).join("");
+    }
+  } catch (err) {
+    injuryEl.innerHTML = `<p style="color:#ef4444;">Error loading data.</p>`;
+    trendEl.innerHTML  = `<p style="color:#ef4444;">Error loading data.</p>`;
+  }
+}
 
 // ── D/ST settings UI + init ────────────────────────────────────────────────
 buildDstSettingsUI();

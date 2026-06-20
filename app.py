@@ -405,6 +405,85 @@ Evaluate this trade from the perspective of the person giving away the first gro
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/waiver", methods=["POST"])
+def api_waiver():
+    """
+    Uses Claude to recommend waiver wire pickups.
+
+    POST body (JSON):
+    {
+      "roster":    [{ "name": "...", "position": "...", "team": "...", "projection": 0.0, "rank": 1 }, ...],
+      "available": [...],
+      "need":      "RB",   // optional positional need
+      "scoring":   "ppr"
+    }
+    """
+    import os
+    import anthropic as _anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY not set on server."}), 500
+
+    data      = request.get_json()
+    roster    = data.get("roster", [])
+    available = data.get("available", [])
+    need      = data.get("need", "")
+    scoring   = data.get("scoring", "ppr").upper()
+
+    if not available:
+        return jsonify({"error": "Add at least one available player to analyze."}), 400
+
+    def fmt(players):
+        return "\n".join(
+            f"  - {p['name']} ({p['position']}, {p['team']}) — Proj: {p['projection']:.2f} pts, Rank #{p['rank']}"
+            for p in players
+        )
+
+    roster_section = f"MY CURRENT ROSTER:\n{fmt(roster)}\n\n" if roster else ""
+    need_section   = f"POSITIONAL NEED: {need}\n\n" if need else ""
+
+    prompt = f"""You are an expert fantasy football analyst helping with waiver wire pickups in a {scoring} league.
+
+{roster_section}{need_section}AVAILABLE PLAYERS ON WAIVERS:
+{fmt(available)}
+
+Recommend the best 1-2 pickups from the available players. For each, give a one-sentence reason. If a roster was provided, factor in roster construction. Be concise and direct."""
+
+    try:
+        client  = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return jsonify({"analysis": message.content[0].text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/news")
+def api_news():
+    """Returns injured/questionable players + Sleeper trending adds."""
+    try:
+        players, week, season = _build_player_list("ppr")
+        injured = [
+            p for p in players
+            if p.get("injury_status") and p["injury_status"].lower() not in ("active", "none", "")
+        ]
+
+        trending = []
+        try:
+            from sleeper_api import get_trending
+            trending = get_trending()
+        except Exception:
+            pass
+
+        return jsonify({"injured": injured, "trending": trending, "week": week, "season": season})
+    except Exception as e:
+        return jsonify({"error": str(e), "injured": [], "trending": []}), 500
+
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))

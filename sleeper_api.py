@@ -201,3 +201,33 @@ def fetch_dst_players():
         })
 
     return dst_list, week, season
+
+
+def get_trending(lookback_hours=24, limit=10):
+    """
+    Returns top trending waiver adds with player info.
+    Each item: { name, position, team, player_id, add_count }
+    """
+    try:
+        url  = f"{SLEEPER_BASE}/players/nfl/trending/add?lookback_hours={lookback_hours}&limit={limit}"
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        trending_raw = resp.json()
+
+        all_players = get_all_players()
+        result = []
+        for item in trending_raw:
+            pid = item.get("player_id")
+            if not pid or pid not in all_players:
+                continue
+            info = all_players[pid]
+            result.append({
+                "name":       info.get("full_name", "Unknown"),
+                "position":   info.get("position", ""),
+                "team":       info.get("team", ""),
+                "player_id":  pid,
+                "add_count":  item.get("count", 0),
+            })
+        return result
+    except Exception:
+        return []
