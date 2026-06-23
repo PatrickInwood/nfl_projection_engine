@@ -49,6 +49,8 @@ header {
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -.4px;
+}
+.logo-text {
   background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
