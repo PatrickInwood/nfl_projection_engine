@@ -28,8 +28,18 @@ function teamLogo(team, size = 36) {
   const abbr = (ESPN_ABBR[team] || team).toLowerCase();
   const url  = `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`;
   return `<img src="${url}" width="${size}" height="${size}"
-    style="border-radius:6px;object-fit:contain;background:#f1f5f9;padding:2px;"
+    style="border-radius:6px;object-fit:contain;background:var(--surface2);padding:2px;"
     onerror="this.style.visibility='hidden'" alt="${team}">`;
+}
+
+function rankBadge(rank) {
+  let cls = 'rank-normal';
+  if      (rank === 1) cls = 'rank-1';
+  else if (rank === 2) cls = 'rank-2';
+  else if (rank === 3) cls = 'rank-3';
+  else if (rank <= 10) cls = 'rank-top10';
+  else if (rank <= 24) cls = 'rank-mid';
+  return `<span class="rank-badge ${cls}">${rank}</span>`;
 }
 
 function headshot(player_id, name, size = 36) {
@@ -128,9 +138,12 @@ function renderRankingsTable(players) {
     tbody.innerHTML = `<tr><td colspan="6" class="loading">No players found.</td></tr>`;
     return;
   }
-  tbody.innerHTML = players.map((p, i) => `
-    <tr>
-      <td style="color:#94a3b8;font-weight:600;">${p.rank ?? i+1}</td>
+  const maxPts = Math.max(...players.map(p => p.projection), 1);
+  tbody.innerHTML = players.map((p, i) => {
+    const rank = p.rank ?? i + 1;
+    const pct  = Math.round((p.projection / maxPts) * 82);
+    return `<tr>
+      <td>${rankBadge(rank)}</td>
       <td>
         <div style="display:flex;align-items:center;gap:.5rem;">
           ${headshot(p.player_id, p.name)}
@@ -138,15 +151,20 @@ function renderRankingsTable(players) {
         </div>
       </td>
       <td>${posBadge(p.position)}</td>
-      <td style="color:#64748b;">${p.team}</td>
-      <td style="color:#64748b;font-size:.82rem;">
+      <td style="color:var(--text-2);">${p.team}</td>
+      <td style="color:var(--text-2);font-size:.82rem;">
         ${p.opponent || "TBD"}
         ${p.weather ? `<br>${weatherBadge(p.weather)}` : ""}
       </td>
-      <td class="pts">${p.projection.toFixed(2)}</td>
+      <td>
+        <div class="pts-bar-wrap">
+          <div class="pts-bar" style="--pct:${pct}%"></div>
+          <span class="pts-val">${p.projection.toFixed(2)}</span>
+        </div>
+      </td>
       <td>${injTag(p.injury_status)}</td>
-    </tr>
-  `).join("");
+    </tr>`;
+  }).join("");
 }
 
 // Filter controls
@@ -190,9 +208,12 @@ async function loadDstRankings() {
       return;
     }
 
-    tbody.innerHTML = list.map((d, i) => `
-      <tr>
-        <td style="color:#94a3b8;font-weight:600;">${d.rank ?? i + 1}</td>
+    const maxDstPts = Math.max(...list.map(d => d.projection), 1);
+    tbody.innerHTML = list.map((d, i) => {
+      const rank = d.rank ?? i + 1;
+      const pct  = Math.round((d.projection / maxDstPts) * 82);
+      return `<tr>
+        <td>${rankBadge(rank)}</td>
         <td>
           <div style="display:flex;align-items:center;gap:.5rem;">
             ${teamLogo(d.team, 36)}
@@ -200,11 +221,17 @@ async function loadDstRankings() {
           </div>
         </td>
         <td>${posBadge("DEF")}</td>
-        <td style="color:#64748b;">${d.team}</td>
-        <td style="color:#64748b;font-size:.82rem;">—</td>
-        <td class="pts">${d.projection.toFixed(2)}</td>
+        <td style="color:var(--text-2);">${d.team}</td>
+        <td style="color:var(--text-2);font-size:.82rem;">—</td>
+        <td>
+          <div class="pts-bar-wrap">
+            <div class="pts-bar" style="--pct:${pct}%"></div>
+            <span class="pts-val">${d.projection.toFixed(2)}</span>
+          </div>
+        </td>
         <td>—</td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
   } catch (e) {
     document.getElementById("rankings-body").innerHTML =
       `<tr><td colspan="7" class="loading">Error loading D/ST data.</td></tr>`;
@@ -227,9 +254,11 @@ async function loadDst() {
     tbody.innerHTML = `<tr><td colspan="4" class="loading">No D/ST data available.</td></tr>`;
     return;
   }
-  tbody.innerHTML = data.dst.map(d => `
-    <tr>
-      <td style="color:#94a3b8;font-weight:600;">${d.rank}</td>
+  const maxDst2Pts = Math.max(...data.dst.map(d => d.projection), 1);
+  tbody.innerHTML = data.dst.map(d => {
+    const pct = Math.round((d.projection / maxDst2Pts) * 82);
+    return `<tr>
+      <td>${rankBadge(d.rank)}</td>
       <td>
         <div style="display:flex;align-items:center;gap:.5rem;">
           ${teamLogo(d.team, 32)}
@@ -237,9 +266,14 @@ async function loadDst() {
         </div>
       </td>
       <td>${posBadge("DEF")}</td>
-      <td class="pts">${d.projection.toFixed(2)}</td>
-    </tr>
-  `).join("");
+      <td>
+        <div class="pts-bar-wrap">
+          <div class="pts-bar" style="--pct:${pct}%"></div>
+          <span class="pts-val">${d.projection.toFixed(2)}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
 }
 
 document.getElementById("dst-recalc-btn").addEventListener("click", loadDst);
