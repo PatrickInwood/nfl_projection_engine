@@ -246,20 +246,24 @@ tbody td { padding: .6rem 1rem; vertical-align: middle; }
   position: relative;
   display: inline-flex;
   align-items: center;
-  min-width: 74px;
+  min-width: 80px;
   height: 28px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: rgba(255,255,255,.03);
 }
 .pts-bar {
   position: absolute;
   left: 0;
   top: 0;
-  bottom: 0;
+  height: 100%;
   border-radius: 5px;
   background: linear-gradient(90deg,
-    rgba(56,189,248,.18) 0%,
-    rgba(56,189,248,.06) 100%);
+    rgba(56,189,248,.32) 0%,
+    rgba(56,189,248,.10) 100%);
   width: var(--pct, 0%);
-  transition: width .45s cubic-bezier(.4,0,.2,1);
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+  border-left: 2px solid rgba(56,189,248,.55);
 }
 .pts-val {
   position: relative;
@@ -267,7 +271,7 @@ tbody td { padding: .6rem 1rem; vertical-align: middle; }
   color: var(--text);
   font-size: .9rem;
   z-index: 1;
-  padding: 0 .45rem;
+  padding: 0 .5rem;
   letter-spacing: -.2px;
 }
 
