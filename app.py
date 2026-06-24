@@ -556,6 +556,33 @@ def api_news():
         return jsonify({"error": str(e), "injured": [], "trending": []}), 500
 
 
+@app.route("/api/player_history")
+def api_player_history():
+    """
+    Returns game-by-game log for a player.
+    Query params:
+      player_id = Sleeper player ID  (required)
+      position  = QB | RB | WR | TE | K  (required)
+      seasons   = comma-separated seasons, e.g. "2025" or "2025,2024"
+    """
+    player_id   = request.args.get("player_id", "").strip()
+    position    = request.args.get("position",  "QB").upper()
+    seasons_str = request.args.get("seasons",   "2025")
+    seasons     = [s.strip() for s in seasons_str.split(",") if s.strip()]
+
+    if not player_id:
+        return jsonify({"error": "player_id is required", "games": []}), 400
+
+    try:
+        from player_history import fetch_game_log
+        games = fetch_game_log(player_id, position, seasons)
+        return jsonify({"games": games})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e), "games": []}), 500
+
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))

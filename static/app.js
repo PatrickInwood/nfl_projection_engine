@@ -957,3 +957,308 @@ async function loadNews() {
 buildDstSettingsUI();
 renderRosterList();
 loadRankings();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GAME LOG TAB
+// ═══════════════════════════════════════════════════════════════════════════
+
+let glPlayer  = null;   // { name, player_id, position, team }
+let glSeasons = "2025"; // comma-separated string for API
+
+// ── Search ─────────────────────────────────────────────────────────────────
+const glSearchInput = document.getElementById("gl-search");
+const glDropdown    = document.getElementById("gl-dropdown");
+
+glSearchInput.addEventListener("input", function () {
+  const q = this.value.toLowerCase().trim();
+  if (q.length < 2) { glDropdown.classList.add("hidden"); return; }
+
+  const pool = (allRosterPlayers.length ? allRosterPlayers : allPlayers)
+    .filter(p => p.position !== "DEF"); // DEF game logs not supported
+
+  const matches = pool
+    .filter(p => p.name.toLowerCase().includes(q))
+    .slice(0, 9);
+
+  if (!matches.length) { glDropdown.classList.add("hidden"); return; }
+
+  glDropdown.innerHTML = matches.map(p => `
+    <li data-name="${p.name}"
+        data-id="${p.player_id || ''}"
+        data-pos="${p.position}"
+        data-team="${p.team || ''}">
+      ${headshot(p.player_id, p.name, 26)}
+      <span style="flex:1;">${p.name}</span>
+      ${posBadge(p.position)}
+      <span class="gl-dim" style="font-size:.76rem;">${p.team || ''}</span>
+    </li>
+  `).join("");
+  glDropdown.classList.remove("hidden");
+});
+
+glDropdown.addEventListener("click", e => {
+  const li = e.target.closest("li");
+  if (!li) return;
+  glPlayer = {
+    name:      li.dataset.name,
+    player_id: li.dataset.id,
+    position:  li.dataset.pos,
+    team:      li.dataset.team,
+  };
+  glSearchInput.value = li.dataset.name;
+  glDropdown.classList.add("hidden");
+  _fetchGameLog();
+});
+
+document.addEventListener("click", e => {
+  if (!glDropdown.contains(e.target) && e.target !== glSearchInput)
+    glDropdown.classList.add("hidden");
+});
+
+// ── Season toggle ───────────────────────────────────────────────────────────
+document.querySelectorAll(".gl-season-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".gl-season-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    glSeasons = btn.dataset.seasons;
+    if (glPlayer) _fetchGameLog();
+  });
+});
+
+// ── Fetch ───────────────────────────────────────────────────────────────────
+async function _fetchGameLog() {
+  if (!glPlayer?.player_id) return;
+
+  // Show player header
+  document.getElementById("gl-player-header").innerHTML = `
+    ${headshot(glPlayer.player_id, glPlayer.name, 48)}
+    <div class="gl-ph-info">
+      <span class="gl-ph-name">${glPlayer.name}</span>
+      <div class="gl-ph-meta">${posBadge(glPlayer.position)}<span>${glPlayer.team}</span></div>
+    </div>
+  `;
+  document.getElementById("gl-player-header").classList.remove("hidden");
+  document.getElementById("gl-loading").classList.remove("hidden");
+  document.getElementById("gl-table-wrap").style.display = "none";
+  document.getElementById("gl-error").classList.add("hidden");
+
+  try {
+    const url = `/api/player_history?player_id=${encodeURIComponent(glPlayer.player_id)}`
+              + `&position=${glPlayer.position}`
+              + `&seasons=${encodeURIComponent(glSeasons)}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    document.getElementById("gl-loading").classList.add("hidden");
+
+    if (data.error) {
+      const el = document.getElementById("gl-error");
+      el.textContent = data.error;
+      el.classList.remove("hidden");
+      return;
+    }
+    _renderGameLog(data.games || [], glPlayer.position);
+  } catch {
+    document.getElementById("gl-loading").classList.add("hidden");
+    const el = document.getElementById("gl-error");
+    el.textContent = "Failed to load game log. Please try again.";
+    el.classList.remove("hidden");
+  }
+}
+
+// ── Column definitions ──────────────────────────────────────────────────────
+function _glCols(pos) {
+  if (pos === "QB")
+    return ["Wk","Date","Matchup","CMP/ATT","CMP%","PASS YDS","TD","INT","RUSH ATT","RUSH YDS","Weather","FPTS"];
+  if (pos === "RB")
+    return ["Wk","Date","Matchup","CAR","RUSH YDS","YPC","RUSH TD","TGT","REC","REC YDS","REC TD","Weather","FPTS"];
+  if (pos === "WR" || pos === "TE")
+    return ["Wk","Date","Matchup","TGT","REC","REC%","REC YDS","YPR","REC TD","YAC","Weather","FPTS"];
+  if (pos === "K")
+    return ["Wk","Date","Matchup","FGM/FGA","FG%","LONG","XPM/XPA","20-29","30-39","40-49","50+","Weather","FPTS"];
+  return ["Wk","Date","Matchup","Weather","FPTS"];
+}
+
+function _glStatCells(game, pos) {
+  const s = game.stats;
+  const good = v => `<td class="gl-good">${v}</td>`;
+  const bad  = v => `<td class="gl-bad">${v}</td>`;
+  const dim  = v => `<td class="gl-dim">${v}</td>`;
+  const td   = v => `<td>${v}</td>`;
+
+  if (pos === "QB") {
+    const cmpPct = s.att ? Math.round((s.cmp / s.att) * 100) : 0;
+    return [
+      td(`${s.cmp}/${s.att}`),
+      cmpPct >= 65 ? good(`${cmpPct}%`) : cmpPct < 55 ? bad(`${cmpPct}%`) : td(`${cmpPct}%`),
+      s.pass_yd >= 300 ? good(s.pass_yd) : td(s.pass_yd),
+      s.pass_td >= 3   ? good(s.pass_td) : td(s.pass_td),
+      s.int    >= 2    ? bad(s.int)      : td(s.int),
+      dim(s.rush_att),
+      dim(s.rush_yd),
+    ].join("");
+  }
+  if (pos === "RB") {
+    const ypc = s.rush_att ? (s.rush_yd / s.rush_att).toFixed(1) : "—";
+    return [
+      td(s.rush_att),
+      s.rush_yd >= 100 ? good(s.rush_yd) : s.rush_yd < 30 ? bad(s.rush_yd) : td(s.rush_yd),
+      td(ypc),
+      s.rush_td >= 1 ? good(s.rush_td) : td(s.rush_td),
+      dim(s.tgt),
+      dim(s.rec),
+      dim(s.rec_yd),
+      dim(s.rec_td),
+    ].join("");
+  }
+  if (pos === "WR" || pos === "TE") {
+    const recPct = s.tgt ? Math.round((s.rec  / s.tgt)   * 100) : 0;
+    const ypr    = s.rec  ? Math.round( s.rec_yd / s.rec)       : 0;
+    return [
+      td(s.tgt),
+      td(s.rec),
+      recPct >= 70 ? good(`${recPct}%`) : recPct < 40 ? bad(`${recPct}%`) : td(`${recPct}%`),
+      s.rec_yd >= 100 ? good(s.rec_yd) : s.rec_yd < 20 ? bad(s.rec_yd) : td(s.rec_yd),
+      td(ypr || "—"),
+      s.rec_td >= 1 ? good(s.rec_td) : dim(s.rec_td),
+      dim(s.yac || "—"),
+    ].join("");
+  }
+  if (pos === "K") {
+    const fgPct = s.fga ? Math.round((s.fgm / s.fga) * 100) : 0;
+    return [
+      td(`${s.fgm}/${s.fga}`),
+      fgPct === 100 ? good(`${fgPct}%`) : fgPct < 60 ? bad(`${fgPct}%`) : td(`${fgPct}%`),
+      td(s.fg_lng || "—"),
+      td(`${s.xpm}/${s.xpa}`),
+      dim(s.fg_20_29 || "—"),
+      dim(s.fg_30_39 || "—"),
+      dim(s.fg_40_49 || "—"),
+      dim(s.fg_50p   || "—"),
+    ].join("");
+  }
+  return "";
+}
+
+function _glWeatherCell(w) {
+  if (!w) return `<td class="gl-dim">—</td>`;
+  if (w.indoor) return `<td><span class="weather-badge dome">🏟 Dome</span></td>`;
+  const c = (w.condition || "").toLowerCase();
+  let icon = "🌤";
+  if (c.includes("thunder"))                       icon = "⛈";
+  else if (c.includes("snow"))                     icon = "❄️";
+  else if (c.includes("rain")||c.includes("show")||c.includes("driz")) icon = "🌧";
+  else if (c.includes("fog"))                      icon = "🌫";
+  else if (c === "clear")                          icon = "☀️";
+  else if (c === "cloudy")                         icon = "☁️";
+  const bad = w.wind_mph >= 20 || (w.precip_in||0) > 0.1 || (w.temp_f||99) <= 32;
+  const cls = bad ? "weather-badge bad" : "weather-badge ok";
+  let label = `${icon} ${w.temp_f ?? "?"}°F`;
+  if (w.wind_mph >= 15) label += ` · ${w.wind_mph}mph`;
+  const tip = `${w.condition} · ${w.temp_f}°F · Wind ${w.wind_mph}mph · ${w.precip_in}" precip`;
+  return `<td><span class="${cls}" title="${tip}">${label}</span></td>`;
+}
+
+function _glFmtDate(dateStr) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// ── Averages footer ─────────────────────────────────────────────────────────
+function _glAvgRow(games, pos, numCols) {
+  if (!games.length) return "";
+  const n   = games.length;
+  const avg = key => games.reduce((s, g) => s + (g.stats[key] || 0), 0) / n;
+  const f1  = key => avg(key).toFixed(1);
+  const f0  = key => avg(key).toFixed(0);
+
+  let cells = "";
+  if (pos === "QB") {
+    const cmpPct = avg("att") > 0 ? Math.round((avg("cmp") / avg("att")) * 100) : 0;
+    cells = `<td>${f1("cmp")}/${f1("att")}</td><td>${cmpPct}%</td><td>${f0("pass_yd")}</td>
+             <td>${f1("pass_td")}</td><td>${f1("int")}</td>
+             <td>${f1("rush_att")}</td><td>${f0("rush_yd")}</td>`;
+  } else if (pos === "RB") {
+    const ypc = avg("rush_att") > 0 ? (avg("rush_yd") / avg("rush_att")).toFixed(1) : "—";
+    cells = `<td>${f1("rush_att")}</td><td>${f0("rush_yd")}</td><td>${ypc}</td>
+             <td>${f1("rush_td")}</td><td>${f1("tgt")}</td>
+             <td>${f1("rec")}</td><td>${f0("rec_yd")}</td><td>${f1("rec_td")}</td>`;
+  } else if (pos === "WR" || pos === "TE") {
+    const recPct = avg("tgt") > 0 ? Math.round((avg("rec") / avg("tgt")) * 100) : 0;
+    const ypr    = avg("rec") > 0  ? Math.round(avg("rec_yd") / avg("rec"))     : 0;
+    cells = `<td>${f1("tgt")}</td><td>${f1("rec")}</td><td>${recPct}%</td>
+             <td>${f0("rec_yd")}</td><td>${ypr}</td>
+             <td>${f1("rec_td")}</td><td>${f0("yac")}</td>`;
+  } else if (pos === "K") {
+    const fgPct = avg("fga") > 0 ? Math.round((avg("fgm") / avg("fga")) * 100) : 0;
+    cells = `<td>${f1("fgm")}/${f1("fga")}</td><td>${fgPct}%</td><td>—</td>
+             <td>${f1("xpm")}/${f1("xpa")}</td>
+             <td>—</td><td>—</td><td>—</td><td>—</td>`;
+  }
+
+  const avgPts = (games.reduce((s, g) => s + g.pts_ppr, 0) / n).toFixed(1);
+  return `<tr class="gl-avg-row">
+    <td colspan="3">${n} games · Season avg</td>
+    ${cells}
+    <td>—</td>
+    <td class="gl-fpts">${avgPts}</td>
+  </tr>`;
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function _renderGameLog(games, pos) {
+  const tableWrap = document.getElementById("gl-table-wrap");
+  const thead     = document.getElementById("gl-thead");
+  const tbody     = document.getElementById("gl-tbody");
+  const tfoot     = document.getElementById("gl-tfoot");
+  const errorEl   = document.getElementById("gl-error");
+
+  if (!games.length) {
+    errorEl.textContent = "No game data found. Player may not have stats for the selected season(s).";
+    errorEl.classList.remove("hidden");
+    tableWrap.style.display = "none";
+    return;
+  }
+
+  errorEl.classList.add("hidden");
+  tableWrap.style.display = "";
+
+  const cols = _glCols(pos);
+  thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>`;
+
+  const ptsArr = games.map(g => g.pts_ppr);
+  const avgPts = ptsArr.reduce((a, b) => a + b, 0) / ptsArr.length;
+
+  let lastSeason = null;
+  const rows = [];
+
+  games.forEach(game => {
+    if (game.season !== lastSeason) {
+      rows.push(`<tr class="gl-season-row">
+        <td colspan="${cols.length}"><span>${game.season} Regular Season</span></td>
+      </tr>`);
+      lastSeason = game.season;
+    }
+
+    let rowCls = "";
+    if      (game.pts_ppr >= avgPts * 1.45) rowCls = "gl-row-elite";
+    else if (game.pts_ppr >= avgPts * 1.15) rowCls = "gl-row-good";
+    else if (game.pts_ppr <  avgPts * 0.55) rowCls = "gl-row-poor";
+
+    const matchup = game.opponent !== "TBD"
+      ? `${game.home ? "vs" : "@"}&nbsp;<strong>${game.opponent}</strong>`
+      : `<span class="gl-dim">—</span>`;
+
+    rows.push(`<tr class="${rowCls}">
+      <td class="gl-dim">Wk&nbsp;${game.week}</td>
+      <td class="gl-dim">${_glFmtDate(game.date)}</td>
+      <td class="gl-matchup">${matchup}</td>
+      ${_glStatCells(game, pos)}
+      ${_glWeatherCell(game.weather)}
+      <td class="gl-fpts">${game.pts_ppr.toFixed(1)}</td>
+    </tr>`);
+  });
+
+  tbody.innerHTML = rows.join("");
+  tfoot.innerHTML = _glAvgRow(games, pos, cols.length);
+}

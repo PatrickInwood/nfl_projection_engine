@@ -866,6 +866,132 @@ tbody td { padding: .6rem 1rem; vertical-align: middle; }
   font-weight: 700;
 }
 
+/* ── Game Log Tab ────────────────────────────────────────────────────── */
+.gamelog-wrap { max-width: 1100px; margin: 0 auto; }
+.gamelog-wrap h2 { margin-bottom: .25rem; color: var(--text); }
+
+.gl-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0 1.25rem;
+  flex-wrap: wrap;
+}
+
+.gl-search-wrap { flex: 1; min-width: 240px; max-width: 380px; }
+
+.gl-season-toggle { display: flex; gap: .4rem; }
+
+.gl-season-btn {
+  padding: .32rem .85rem;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.gl-season-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+.gl-season-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0a0f1e;
+}
+
+.gl-player-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .85rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+.gl-player-header.hidden { display: none; }
+.gl-ph-info { display: flex; flex-direction: column; gap: .2rem; }
+.gl-ph-name { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.gl-ph-meta { display: flex; align-items: center; gap: .5rem; font-size: .82rem; color: var(--text-2); }
+
+.gl-loading {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  justify-content: center;
+  padding: 2.5rem;
+  color: var(--text-2);
+  font-size: .9rem;
+}
+.gl-loading.hidden { display: none; }
+
+.gl-spinner {
+  width: 22px; height: 22px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.gl-error {
+  text-align: center;
+  color: var(--red);
+  padding: 1.5rem;
+  font-size: .9rem;
+  background: rgba(248,113,113,.06);
+  border: 1px solid rgba(248,113,113,.2);
+  border-radius: 8px;
+  margin-top: .5rem;
+}
+.gl-error.hidden { display: none; }
+
+/* Season divider rows */
+.gl-season-row td {
+  background: #060c18 !important;
+  color: var(--text-3);
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .9px;
+  padding: .4rem 1rem !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.gl-season-row td span {
+  background: var(--accent-dim);
+  border: 1px solid rgba(56,189,248,.2);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: .1rem .5rem;
+  font-size: .7rem;
+}
+
+/* Row performance coloring */
+.gl-row-elite { border-left: 3px solid var(--gold) !important; }
+.gl-row-good  { border-left: 3px solid rgba(74,222,128,.5) !important; }
+.gl-row-poor  { border-left: 3px solid rgba(248,113,113,.3) !important; opacity: .8; }
+
+/* Averages footer row */
+.gl-avg-row td {
+  background: var(--surface2) !important;
+  font-weight: 600;
+  font-size: .82rem;
+  color: var(--text-2);
+  border-top: 1px solid var(--border) !important;
+}
+
+/* Cell variants */
+.gl-fpts  { font-weight: 700; color: var(--accent); }
+.gl-dim   { color: var(--text-3); }
+.gl-good  { color: #86efac; font-weight: 600; }
+.gl-bad   { color: var(--red); font-weight: 600; }
+.gl-stat  { font-variant-numeric: tabular-nums; }
+.gl-matchup strong { color: var(--text); }
+.gl-matchup { white-space: nowrap; }
+
 /* ── Mobile ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .header-inner { padding: .6rem 1rem; }

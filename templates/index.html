@@ -23,6 +23,7 @@
       <button class="tab-btn" data-tab="trade">Trade Analyzer</button>
       <button class="tab-btn" data-tab="waiver">Waiver Wire</button>
       <button class="tab-btn" data-tab="news">Injury Report</button>
+      <button class="tab-btn" data-tab="gamelog">Game Log</button>
     </nav>
   </header>
 
@@ -313,6 +314,43 @@
             </div>
           </div>
 
+        </div>
+      </div>
+    </section>
+
+    <!-- ── GAME LOG TAB ─────────────────────────────────────────────────── -->
+    <section id="tab-gamelog" class="tab-content">
+      <div class="gamelog-wrap">
+        <h2>Player Game Log</h2>
+        <p class="subtext">Search any player to view historical box scores — game-by-game stats, matchup, and weather conditions.</p>
+
+        <div class="gl-controls">
+          <div class="player-search-wrap gl-search-wrap">
+            <input type="text" id="gl-search" class="search-input"
+                   placeholder="Search for a player…" autocomplete="off"/>
+            <ul id="gl-dropdown" class="dropdown hidden"></ul>
+          </div>
+          <div class="gl-season-toggle">
+            <button class="gl-season-btn active" data-seasons="2025">2025 Season</button>
+            <button class="gl-season-btn" data-seasons="2025,2024">Last 2 Seasons</button>
+          </div>
+        </div>
+
+        <div id="gl-player-header" class="gl-player-header hidden"></div>
+
+        <div id="gl-loading" class="gl-loading hidden">
+          <div class="gl-spinner"></div>
+          <span>Fetching game log &amp; weather data…</span>
+        </div>
+
+        <div id="gl-error" class="gl-error hidden"></div>
+
+        <div class="table-wrap" id="gl-table-wrap" style="display:none;">
+          <table id="gl-table">
+            <thead id="gl-thead"></thead>
+            <tbody id="gl-tbody"></tbody>
+            <tfoot id="gl-tfoot"></tfoot>
+          </table>
         </div>
       </div>
     </section>
