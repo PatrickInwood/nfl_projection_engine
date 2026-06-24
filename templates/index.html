@@ -23,6 +23,7 @@
       <button class="tab-btn" data-tab="trade">Trade Analyzer</button>
       <button class="tab-btn" data-tab="waiver">Waiver Wire</button>
       <button class="tab-btn" data-tab="news">Injury Report</button>
+      <button class="tab-btn" data-tab="bye">Bye Week</button>
       <button class="tab-btn" data-tab="gamelog">Game Log</button>
     </nav>
   </header>
@@ -288,32 +289,46 @@
         </div>
 
         <div id="waiver-result" class="trade-result hidden"></div>
+
+        <!-- Trending Adds -->
+        <div class="waiver-trending">
+          <h3>📈 Trending Adds</h3>
+          <p class="subtext">Most added players on Sleeper in the last 24 hours.</p>
+          <div id="trending-list">
+            <div class="loading">Loading trending players...</div>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- ── INJURY REPORT TAB ──────────────────────────────────────────────────── -->
     <section id="tab-news" class="tab-content">
       <div class="news-wrap">
-        <div class="news-grid">
-
-          <!-- Injury report -->
-          <div class="card">
-            <h3>🚑 Injury Report</h3>
-            <p class="subtext">Players with active injury designations this week.</p>
-            <div id="injury-list">
-              <div class="loading">Loading injury report...</div>
-            </div>
+        <div class="card">
+          <h3>🚑 Injury Report</h3>
+          <p class="subtext">Players with active injury designations this week.</p>
+          <div id="injury-list">
+            <div class="loading">Loading injury report...</div>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <!-- Trending adds -->
-          <div class="card">
-            <h3>📈 Trending Adds</h3>
-            <p class="subtext">Most added players on Sleeper in the last 24 hours.</p>
-            <div id="trending-list">
-              <div class="loading">Loading trending players...</div>
-            </div>
-          </div>
-
+    <!-- ── BYE WEEK TAB ──────────────────────────────────────────────────── -->
+    <section id="tab-bye" class="tab-content">
+      <div class="bye-wrap">
+        <h2>Bye Week Calendar</h2>
+        <p class="subtext">2025 NFL regular season — team bye weeks at a glance.</p>
+        <div class="bye-legend">
+          <span class="bye-dot bye-current"></span> Current week
+          <span class="bye-dot bye-past" style="margin-left:1rem;"></span> Past
+          <span class="bye-dot bye-future" style="margin-left:1rem;"></span> Bye week
+        </div>
+        <div class="table-wrap bye-table-wrap">
+          <table id="bye-table">
+            <thead id="bye-thead"></thead>
+            <tbody id="bye-tbody"></tbody>
+          </table>
         </div>
       </div>
     </section>

@@ -902,20 +902,15 @@ document.getElementById("waiver-analyze-btn").addEventListener("click", async ()
   btn.textContent = "✦ Get Recommendations";
 });
 
-// ── Injury Report + Trending ───────────────────────────────────────────────
+// ── Injury Report ─────────────────────────────────────────────────────────
 document.querySelector('[data-tab="news"]').addEventListener("click", loadNews);
 
 async function loadNews() {
-  const injuryEl  = document.getElementById("injury-list");
-  const trendEl   = document.getElementById("trending-list");
-  injuryEl.innerHTML  = `<div class="loading">Loading...</div>`;
-  trendEl.innerHTML   = `<div class="loading">Loading...</div>`;
-
+  const injuryEl = document.getElementById("injury-list");
+  injuryEl.innerHTML = `<div class="loading">Loading...</div>`;
   try {
     const res  = await fetch("/api/news");
     const data = await res.json();
-
-    // Injury report
     if (!data.injured || !data.injured.length) {
       injuryEl.innerHTML = `<p class="subtext">No injury designations found for this week.</p>`;
     } else {
@@ -930,11 +925,28 @@ async function loadNews() {
         </div>
       `).join("");
     }
+  } catch (err) {
+    injuryEl.innerHTML = `<p style="color:#ef4444;">Error loading injury data.</p>`;
+  }
+}
 
-    // Trending adds
+// ── Trending Adds (Waiver Wire tab) ───────────────────────────────────────
+let _trendingLoaded = false;
+document.querySelector('[data-tab="waiver"]').addEventListener("click", () => {
+  if (!_trendingLoaded) loadTrending();
+});
+
+async function loadTrending() {
+  const trendEl = document.getElementById("trending-list");
+  if (!trendEl) return;
+  trendEl.innerHTML = `<div class="loading">Loading...</div>`;
+  try {
+    const res  = await fetch("/api/news");
+    const data = await res.json();
     if (!data.trending || !data.trending.length) {
       trendEl.innerHTML = `<p class="subtext">Trending data unavailable (off-season or API limit).</p>`;
     } else {
+      _trendingLoaded = true;
       trendEl.innerHTML = data.trending.map((p, i) => `
         <div class="news-row">
           <span class="trend-rank">${i + 1}</span>
@@ -948,9 +960,77 @@ async function loadNews() {
       `).join("");
     }
   } catch (err) {
-    injuryEl.innerHTML = `<p style="color:#ef4444;">Error loading data.</p>`;
-    trendEl.innerHTML  = `<p style="color:#ef4444;">Error loading data.</p>`;
+    trendEl.innerHTML = `<p style="color:#ef4444;">Error loading trending data.</p>`;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BYE WEEK CALENDAR
+// ═══════════════════════════════════════════════════════════════════════════
+
+// 2025 NFL bye weeks (official schedule)
+const BYE_WEEKS_2025 = {
+  ARI: 11, ATL: 12, BAL: 14, BUF: 12, CAR: 11, CHI: 7,
+  CIN: 12, CLE: 10, DAL: 7,  DEN: 14, DET: 5,  GB: 6,
+  HOU: 14, IND: 14, JAX: 12, KC: 6,  LAC: 5,  LAR: 6,
+  LV: 10, MIA: 6,  MIN: 6,  NE: 14, NO: 12,  NYG: 11,
+  NYJ: 12, PHI: 5,  PIT: 9,  SEA: 9,  SF: 9,  TB: 11,
+  TEN: 5,  WAS: 14,
+};
+
+const NFL_DIVISIONS = {
+  "AFC East":  ["BUF","MIA","NE","NYJ"],
+  "AFC North": ["BAL","CIN","CLE","PIT"],
+  "AFC South": ["HOU","IND","JAX","TEN"],
+  "AFC West":  ["DEN","KC","LV","LAC"],
+  "NFC East":  ["DAL","NYG","PHI","WAS"],
+  "NFC North": ["CHI","DET","GB","MIN"],
+  "NFC South": ["ATL","CAR","NO","TB"],
+  "NFC West":  ["ARI","LAR","SF","SEA"],
+};
+
+document.querySelector('[data-tab="bye"]').addEventListener("click", renderByeCalendar);
+
+function renderByeCalendar() {
+  const thead = document.getElementById("bye-thead");
+  const tbody = document.getElementById("bye-tbody");
+  if (!thead || !tbody || tbody.dataset.rendered) return;
+  tbody.dataset.rendered = "1";
+
+  const badgeText   = (document.getElementById("week-badge") || {}).textContent || "";
+  const weekMatch   = badgeText.match(/Week\s*(\d+)/i);
+  const currentWeek = weekMatch ? parseInt(weekMatch[1]) : 18;
+
+  const weeks = Array.from({length: 18}, (_, i) => i + 1);
+
+  thead.innerHTML = `<tr>
+    <th class="bye-th-team">Team</th>
+    ${weeks.map(w => `<th class="${w === currentWeek ? 'bye-cell-current' : ''}">${w}</th>`).join("")}
+  </tr>`;
+
+  const rows = [];
+  for (const [div, teams] of Object.entries(NFL_DIVISIONS)) {
+    rows.push(`<tr>
+      <td colspan="${weeks.length + 1}" style="background:var(--surface2);color:var(--text-2);font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.3rem .75rem;">${div}</td>
+    </tr>`);
+    for (const team of teams) {
+      const byeWk = BYE_WEEKS_2025[team];
+      const cells = weeks.map(w => {
+        if (w === byeWk) return `<td><span class="bye-cell-bye">BYE</span></td>`;
+        if (w < currentWeek) return `<td class="bye-cell-past">·</td>`;
+        if (w === currentWeek) return `<td class="bye-cell-current">▶</td>`;
+        return `<td class="bye-cell-normal">·</td>`;
+      }).join("");
+      const logo = `<img src="https://a.espncdn.com/i/teamlogos/nfl/500/${team.toLowerCase()}.png"
+        style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:.4rem;border-radius:3px;"
+        onerror="this.style.display='none'" loading="lazy"/>`;
+      rows.push(`<tr>
+        <td class="bye-td-team">${logo}${team}</td>
+        ${cells}
+      </tr>`);
+    }
+  }
+  tbody.innerHTML = rows.join("");
 }
 
 // ── D/ST settings UI + init ────────────────────────────────────────────────

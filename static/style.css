@@ -994,6 +994,77 @@ tbody td { padding: .6rem 1rem; vertical-align: middle; }
 .gl-home-tag { font-size:.72rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.04em; }
 .gl-away-tag { font-size:.72rem; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:.04em; }
 
+/* ── Waiver Wire: Trending Adds section ─────────────────────────────── */
+.waiver-trending {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.waiver-trending h3 { margin: 0 0 .25rem; font-size: 1rem; }
+
+/* ── Bye Week Calendar ───────────────────────────────────────────────── */
+.bye-wrap { max-width: 1100px; }
+.bye-wrap h2 { margin: 0 0 .25rem; }
+.bye-legend {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .8rem;
+  color: var(--text-2);
+  margin: .75rem 0 1rem;
+}
+.bye-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 3px;
+}
+.bye-dot.bye-current { background: var(--accent); }
+.bye-dot.bye-past    { background: var(--surface3); border: 1px solid var(--border); }
+.bye-dot.bye-future  { background: rgba(245,158,11,.75); }
+
+.bye-table-wrap { overflow-x: auto; }
+
+#bye-table { border-collapse: collapse; width: 100%; font-size: .78rem; }
+#bye-table th {
+  padding: .35rem .5rem;
+  text-align: center;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+#bye-table th.bye-th-team { text-align: left; padding-left: .75rem; min-width: 80px; }
+#bye-table td {
+  padding: .3rem .4rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(30,48,80,.5);
+}
+#bye-table td.bye-td-team {
+  text-align: left;
+  padding-left: .75rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+#bye-table tr:hover td { background: var(--surface2); }
+
+.bye-cell-bye {
+  background: rgba(245,158,11,.18);
+  color: var(--gold);
+  font-weight: 800;
+  border-radius: 4px;
+  letter-spacing: .03em;
+}
+.bye-cell-current { background: rgba(56,189,248,.1); color: var(--accent); }
+.bye-cell-past    { color: var(--text-3); }
+.bye-cell-normal  { color: var(--surface3); }
+
 /* ── Mobile ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .header-inner { padding: .6rem 1rem; }
