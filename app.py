@@ -583,6 +583,90 @@ def api_player_history():
         return jsonify({"error": str(e), "games": []}), 500
 
 
+# In-memory cache for bye weeks (lasts the lifetime of the server process)
+_bye_weeks_cache = {}
+
+@app.route("/api/bye_weeks")
+def api_bye_weeks():
+    """
+    Returns bye weeks for all NFL teams by scanning ESPN scoreboard for each week.
+    Teams absent from a week's scoreboard are on bye that week.
+    Response: { season: "2026", byes: { "BAL": 6, "BUF": 12, ... } }
+    """
+    global _bye_weeks_cache
+
+    try:
+        from sleeper_api import get_nfl_state
+        import requests
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        state  = get_nfl_state()
+        season = state.get("season", "2025")
+
+        # Return cached result if already computed for this season
+        if _bye_weeks_cache.get("season") == season and len(_bye_weeks_cache.get("byes", {})) >= 28:
+            return jsonify(_bye_weeks_cache)
+
+        ALL_NFL_TEAMS = {
+            "ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE",
+            "DAL","DEN","DET","GB","HOU","IND","JAX","KC",
+            "LAC","LAR","LV","MIA","MIN","NE","NO","NYG",
+            "NYJ","PHI","PIT","SEA","SF","TB","TEN","WAS",
+        }
+        ESPN_NORM = {"WSH": "WAS"}
+
+        def _teams_playing(week):
+            """Return set of team abbrs playing in this week (ESPN scoreboard)."""
+            try:
+                r = requests.get(
+                    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+                    params={"seasontype": 2, "week": week, "dates": season},
+                    timeout=10,
+                )
+                if r.status_code != 200:
+                    return week, set()
+                playing = set()
+                for event in r.json().get("events", []):
+                    for comp in event.get("competitions", [{}])[0].get("competitors", []):
+                        abbr = comp.get("team", {}).get("abbreviation", "").upper()
+                        abbr = ESPN_NORM.get(abbr, abbr)
+                        playing.add(abbr)
+                return week, playing
+            except Exception:
+                return week, set()
+
+        # Fetch all 18 weeks in parallel
+        playing_by_week = {}
+        with ThreadPoolExecutor(max_workers=9) as ex:
+            futs = {ex.submit(_teams_playing, w): w for w in range(1, 19)}
+            for fut in as_completed(futs):
+                week, teams = fut.result()
+                playing_by_week[week] = teams
+
+        # A team is on bye the week it doesn't appear in the scoreboard
+        # (only count weeks where at least 12 games were played = full slate)
+        byes = {}
+        for week in range(1, 19):
+            playing = playing_by_week.get(week, set())
+            if len(playing) < 24:   # incomplete week data — skip
+                continue
+            for team in ALL_NFL_TEAMS:
+                if team not in playing and team not in byes:
+                    byes[team] = week
+
+        if len(byes) >= 28:
+            _bye_weeks_cache = {"season": season, "byes": byes}
+            return jsonify(_bye_weeks_cache)
+
+        # ESPN didn't return enough data — return empty so JS uses hardcoded fallback
+        return jsonify({"season": season, "byes": {}})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"season": "2025", "byes": {}, "error": str(e)})
+
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))

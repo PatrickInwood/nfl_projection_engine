@@ -968,14 +968,17 @@ async function loadTrending() {
 // BYE WEEK CALENDAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-// 2025 NFL bye weeks (official schedule)
-const BYE_WEEKS_2025 = {
-  ARI: 11, ATL: 12, BAL: 14, BUF: 12, CAR: 11, CHI: 7,
-  CIN: 12, CLE: 10, DAL: 7,  DEN: 14, DET: 5,  GB: 6,
-  HOU: 14, IND: 14, JAX: 12, KC: 6,  LAC: 5,  LAR: 6,
-  LV: 10, MIA: 6,  MIN: 6,  NE: 14, NO: 12,  NYG: 11,
-  NYJ: 12, PHI: 5,  PIT: 9,  SEA: 9,  SF: 9,  TB: 11,
-  TEN: 5,  WAS: 14,
+// 2025 bye weeks — fallback if Sleeper hasn't released the upcoming season yet
+const _BYE_FALLBACK = {
+  season: "2025",
+  byes: {
+    ARI: 11, ATL: 12, BAL: 14, BUF: 12, CAR: 11, CHI: 7,
+    CIN: 12, CLE: 10, DAL: 7,  DEN: 14, DET: 5,  GB: 6,
+    HOU: 14, IND: 14, JAX: 12, KC: 6,  LAC: 5,  LAR: 6,
+    LV: 10,  MIA: 6,  MIN: 6,  NE: 14, NO: 12,  NYG: 11,
+    NYJ: 12, PHI: 5,  PIT: 9,  SEA: 9,  SF: 9,  TB: 11,
+    TEN: 5,  WAS: 14,
+  },
 };
 
 const NFL_DIVISIONS = {
@@ -991,11 +994,29 @@ const NFL_DIVISIONS = {
 
 document.querySelector('[data-tab="bye"]').addEventListener("click", renderByeCalendar);
 
-function renderByeCalendar() {
+async function renderByeCalendar() {
   const thead = document.getElementById("bye-thead");
   const tbody = document.getElementById("bye-tbody");
   if (!thead || !tbody || tbody.dataset.rendered) return;
   tbody.dataset.rendered = "1";
+
+  // Fetch live bye weeks from Sleeper cache; fall back to 2025 hardcoded
+  let byeData = _BYE_FALLBACK;
+  try {
+    const res = await fetch("/api/bye_weeks");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.byes && Object.keys(data.byes).length >= 28) {
+        byeData = data; // live data has all 32 teams
+      }
+    }
+  } catch (_) {}
+
+  const { season, byes } = byeData;
+
+  // Update tab heading to show the season
+  const heading = document.querySelector("#tab-bye h2");
+  if (heading) heading.textContent = `${season} Bye Week Calendar`;
 
   const badgeText   = (document.getElementById("week-badge") || {}).textContent || "";
   const weekMatch   = badgeText.match(/Week\s*(\d+)/i);
@@ -1005,7 +1026,7 @@ function renderByeCalendar() {
 
   thead.innerHTML = `<tr>
     <th class="bye-th-team">Team</th>
-    ${weeks.map(w => `<th class="${w === currentWeek ? 'bye-cell-current' : ''}">${w}</th>`).join("")}
+    ${weeks.map(w => `<th${w === currentWeek ? ' style="color:var(--accent);"' : ""}>${w}</th>`).join("")}
   </tr>`;
 
   const rows = [];
@@ -1014,10 +1035,10 @@ function renderByeCalendar() {
       <td colspan="${weeks.length + 1}" style="background:var(--surface2);color:var(--text-2);font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.3rem .75rem;">${div}</td>
     </tr>`);
     for (const team of teams) {
-      const byeWk = BYE_WEEKS_2025[team];
+      const byeWk = byes[team];
       const cells = weeks.map(w => {
-        if (w === byeWk) return `<td><span class="bye-cell-bye">BYE</span></td>`;
-        if (w < currentWeek) return `<td class="bye-cell-past">·</td>`;
+        if (w === byeWk)        return `<td><span class="bye-cell-bye">BYE</span></td>`;
+        if (w < currentWeek)   return `<td class="bye-cell-past">·</td>`;
         if (w === currentWeek) return `<td class="bye-cell-current">▶</td>`;
         return `<td class="bye-cell-normal">·</td>`;
       }).join("");
