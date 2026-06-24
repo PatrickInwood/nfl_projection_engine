@@ -54,27 +54,67 @@ def get_projections(season, week, season_type="regular"):
 
 def get_matchup_map(season, week, season_type="regular"):
     """
-    Returns a dict mapping each NFL team abbreviation to its matchup string.
-    e.g. {"BUF": "vs. NYJ", "NYJ": "@ BUF", ...}
-    Returns empty dict if schedule unavailable (off-season or API error).
+    Returns a dict mapping each NFL team abbreviation to its matchup info.
+    e.g. {"BUF": {"home": "BUF", "opp": "NYJ"}, "NYJ": {"home": "BUF", "opp": "BUF"}}
+    Uses ESPN scoreboard API (works for historical seasons). Falls back to Sleeper schedule.
     """
+    # ESPN season type: 1=pre, 2=regular, 3=post
+    _ESPN_STYPE = {"pre": 1, "regular": 2, "post": 3}
+    # Normalize ESPN abbreviations to Sleeper format
+    _ESPN_NORM = {"WSH": "WAS", "SL": "LAR"}
+
+    def _norm(abbr):
+        a = (abbr or "").upper()
+        return _ESPN_NORM.get(a, a)
+
+    # ── Try ESPN scoreboard (primary) ─────────────────────────────────────
+    try:
+        resp = requests.get(
+            "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+            params={"seasontype": _ESPN_STYPE.get(season_type, 2), "week": week, "dates": season},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            events = resp.json().get("events", [])
+            matchups = {}
+            for event in events:
+                competitors = event.get("competitions", [{}])[0].get("competitors", [])
+                home_abbr = away_abbr = None
+                for comp in competitors:
+                    abbr = _norm(comp.get("team", {}).get("abbreviation", ""))
+                    if comp.get("homeAway") == "home":
+                        home_abbr = abbr
+                    else:
+                        away_abbr = abbr
+                if home_abbr and away_abbr:
+                    matchups[home_abbr] = {"home": home_abbr, "opp": away_abbr}
+                    matchups[away_abbr] = {"home": home_abbr, "opp": home_abbr}
+            if matchups:
+                return matchups
+    except Exception:
+        pass
+
+    # ── Fall back to Sleeper schedule endpoint ─────────────────────────────
     try:
         url = f"{SLEEPER_BASE}/schedule/nfl/{season_type}/{season}/{week}"
         resp = requests.get(url, timeout=10)
-        resp.raise_for_status()
-        games = resp.json()
-        if not games:
-            return {}
-        matchups = {}
-        for game in games:
-            home = game.get("home")
-            away = game.get("away")
-            if home and away:
-                matchups[home] = {"label": f"vs. {away}", "home": home, "opp": away}
-                matchups[away] = {"label": f"@ {home}",   "home": home, "opp": home}
-        return matchups
+        if resp.status_code == 200:
+            games = resp.json() or []
+            matchups = {}
+            for game in games:
+                # Sleeper may use home/away or home_team/away_team
+                home = game.get("home") or game.get("home_team")
+                away = game.get("away") or game.get("away_team")
+                if home and away:
+                    home, away = home.upper(), away.upper()
+                    matchups[home] = {"home": home, "opp": away}
+                    matchups[away] = {"home": home, "opp": home}
+            if matchups:
+                return matchups
     except Exception:
-        return {}
+        pass
+
+    return {}
 
 
 def _resolve_week_season():

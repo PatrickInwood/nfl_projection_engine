@@ -991,6 +991,8 @@ tbody td { padding: .6rem 1rem; vertical-align: middle; }
 .gl-stat  { font-variant-numeric: tabular-nums; }
 .gl-matchup strong { color: var(--text); }
 .gl-matchup { white-space: nowrap; }
+.gl-home-tag { font-size:.72rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.04em; }
+.gl-away-tag { font-size:.72rem; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:.04em; }
 
 /* ── Mobile ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {

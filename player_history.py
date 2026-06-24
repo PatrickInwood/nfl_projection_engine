@@ -222,11 +222,20 @@ def fetch_game_log(player_id: str, position: str, seasons=None) -> list:
     weather_needed = []
 
     for season, week, raw in played_weeks:
-        mm       = matchup_maps.get((season, week), {})
-        matchup  = mm.get(team, {})
-        opponent = matchup.get("opp", "TBD") if isinstance(matchup, dict) else "TBD"
-        home_tm  = matchup.get("home", team) if isinstance(matchup, dict) else team
-        is_home  = (home_tm == team)
+        mm      = matchup_maps.get((season, week), {})
+        matchup = mm.get(team, {})
+
+        # Primary: ESPN/Sleeper schedule (most accurate for home/away)
+        if isinstance(matchup, dict) and matchup.get("opp"):
+            opponent = matchup["opp"]
+            home_tm  = matchup.get("home", team)
+            is_home  = (home_tm == team)
+        else:
+            # Fallback: extract opp directly from Sleeper stats payload
+            opp_raw  = raw.get("opp") or raw.get("opp_team") or ""
+            opponent = opp_raw.upper() if opp_raw else "TBD"
+            home_raw = raw.get("home")
+            is_home  = bool(int(home_raw)) if home_raw is not None else None
 
         date_str = _week_date(season, week)
         stadium  = get_stadium(home_tm) if home_tm else None
@@ -248,7 +257,7 @@ def fetch_game_log(player_id: str, position: str, seasons=None) -> list:
             "week":     week,
             "date":     date_str,
             "opponent": opponent,
-            "home":     is_home,
+            "home":     is_home,   # True=home, False=away, None=unknown
             "stats":    _extract_stats(raw, position),
             "pts_ppr":  round(pts, 2),
             "weather":  weather,

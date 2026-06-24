@@ -1068,14 +1068,14 @@ async function _fetchGameLog() {
 // ── Column definitions ──────────────────────────────────────────────────────
 function _glCols(pos) {
   if (pos === "QB")
-    return ["Wk","Date","Matchup","CMP/ATT","CMP%","PASS YDS","TD","INT","RUSH ATT","RUSH YDS","Weather","FPTS"];
+    return ["Wk","Date","Opponent","CMP/ATT","CMP%","PASS YDS","TD","INT","RUSH ATT","RUSH YDS","Weather","FPTS"];
   if (pos === "RB")
-    return ["Wk","Date","Matchup","CAR","RUSH YDS","YPC","RUSH TD","TGT","REC","REC YDS","REC TD","Weather","FPTS"];
+    return ["Wk","Date","Opponent","CAR","RUSH YDS","YPC","RUSH TD","TGT","REC","REC YDS","REC TD","Weather","FPTS"];
   if (pos === "WR" || pos === "TE")
-    return ["Wk","Date","Matchup","TGT","REC","REC%","REC YDS","YPR","REC TD","YAC","Weather","FPTS"];
+    return ["Wk","Date","Opponent","TGT","REC","REC%","REC YDS","YPR","REC TD","YAC","Weather","FPTS"];
   if (pos === "K")
-    return ["Wk","Date","Matchup","FGM/FGA","FG%","LONG","XPM/XPA","20-29","30-39","40-49","50+","Weather","FPTS"];
-  return ["Wk","Date","Matchup","Weather","FPTS"];
+    return ["Wk","Date","Opponent","FGM/FGA","FG%","LONG","XPM/XPA","20-29","30-39","40-49","50+","Weather","FPTS"];
+  return ["Wk","Date","Opponent","Weather","FPTS"];
 }
 
 function _glStatCells(game, pos) {
@@ -1245,14 +1245,20 @@ function _renderGameLog(games, pos) {
     else if (game.pts_ppr >= avgPts * 1.15) rowCls = "gl-row-good";
     else if (game.pts_ppr <  avgPts * 0.55) rowCls = "gl-row-poor";
 
-    const matchup = game.opponent !== "TBD"
-      ? `${game.home ? "vs" : "@"}&nbsp;<strong>${game.opponent}</strong>`
-      : `<span class="gl-dim">—</span>`;
+    let oppCell;
+    if (game.opponent && game.opponent !== "TBD") {
+      const prefix = game.home === true  ? `<span class="gl-home-tag">vs</span>`
+                   : game.home === false ? `<span class="gl-away-tag">@</span>`
+                   : ``;
+      oppCell = `${prefix}&nbsp;<strong>${game.opponent}</strong>`;
+    } else {
+      oppCell = `<span class="gl-dim">—</span>`;
+    }
 
     rows.push(`<tr class="${rowCls}">
       <td class="gl-dim">Wk&nbsp;${game.week}</td>
       <td class="gl-dim">${_glFmtDate(game.date)}</td>
-      <td class="gl-matchup">${matchup}</td>
+      <td class="gl-matchup">${oppCell}</td>
       ${_glStatCells(game, pos)}
       ${_glWeatherCell(game.weather)}
       <td class="gl-fpts">${game.pts_ppr.toFixed(1)}</td>
