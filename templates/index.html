@@ -15,7 +15,8 @@
       <div id="week-badge" class="week-badge">Loading...</div>
     </div>
     <nav class="tab-nav">
-      <button class="tab-btn active" data-tab="rankings">Rankings</button>
+      <button class="tab-btn active" data-tab="home">Home</button>
+      <button class="tab-btn" data-tab="rankings">Rankings</button>
       <button class="tab-btn" data-tab="dst">D/ST</button>
       <button class="tab-btn" data-tab="search">Player Search</button>
       <button class="tab-btn" data-tab="roster">Roster Builder</button>
@@ -30,8 +31,125 @@
 
   <main>
 
+    <!-- ── HOME TAB ──────────────────────────────────────────────────────── -->
+    <section id="tab-home" class="tab-content active">
+      <div class="home-wrap">
+
+        <!-- Hero -->
+        <div class="home-hero">
+          <div class="home-hero-title">🏈 NFL Projection Engine</div>
+          <p class="home-hero-sub">A fantasy football research hub powered by live Sleeper data and Claude AI — built by <strong>Patrick Inwood</strong>.</p>
+        </div>
+
+        <!-- Feature grid -->
+        <div class="home-features-label">Features</div>
+        <div class="home-grid">
+
+          <div class="home-card" data-goto="rankings">
+            <div class="home-card-icon">📊</div>
+            <div class="home-card-body">
+              <h3>Rankings</h3>
+              <p>Weekly player projections ranked by projected fantasy points. Filter by position (QB, RB, WR, TE, FLEX, K, D/ST), toggle PPR / Half PPR / Standard scoring, and hide players on bye week.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="dst">
+            <div class="home-card-icon">🛡</div>
+            <div class="home-card-body">
+              <h3>D/ST Rankings</h3>
+              <p>Defensive unit rankings with fully customizable scoring. Adjust points for sacks, touchdowns, interceptions, fumbles, and safety values to match your league's exact settings.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="search">
+            <div class="home-card-icon">🔍</div>
+            <div class="home-card-body">
+              <h3>Player Search</h3>
+              <p>Search any active NFL player and instantly view their current week projection, injury status, team, position, and upcoming matchup — all pulled live from Sleeper.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="roster">
+            <div class="home-card-icon">🗂</div>
+            <div class="home-card-body">
+              <h3>Roster Builder</h3>
+              <p>Enter your full roster — starters and bench — and let the optimizer build your ideal starting lineup. Supports custom slot configurations including Triple Flex leagues.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="startsit">
+            <div class="home-card-icon">⚖️</div>
+            <div class="home-card-body">
+              <h3>Start / Sit</h3>
+              <p>Compare any two players head-to-head. Claude analyzes their projections, matchups, injury status, and recent form to give you a clear start recommendation with reasoning.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="trade">
+            <div class="home-card-icon">🔄</div>
+            <div class="home-card-body">
+              <h3>Trade Analyzer</h3>
+              <p>Build out both sides of any trade and get a Claude-powered evaluation. Factors in projected value, positional scarcity, roster construction, and rest-of-season outlook.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="waiver">
+            <div class="home-card-icon">📋</div>
+            <div class="home-card-body">
+              <h3>Waiver Wire</h3>
+              <p>Add players you're targeting off waivers and get Claude's ranked pickup recommendations. Includes live Trending Adds showing the most-added players on Sleeper in the last 24 hours.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="news">
+            <div class="home-card-icon">🚑</div>
+            <div class="home-card-body">
+              <h3>Injury Report</h3>
+              <p>Live injury designations for all active NFL players this week. Statuses sourced directly from Sleeper's player database and updated throughout the week as reports come in.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="bye">
+            <div class="home-card-icon">📅</div>
+            <div class="home-card-body">
+              <h3>Bye Week Calendar</h3>
+              <p>Full 18-week bye calendar for all 32 NFL teams, organized by division. Auto-updates to the current season's schedule. See at a glance which weeks your players are unavailable.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+          <div class="home-card" data-goto="gamelog">
+            <div class="home-card-icon">📈</div>
+            <div class="home-card-body">
+              <h3>Game Log</h3>
+              <p>Historical box scores for any NFL player with game-by-game stats, opponent, home/away, and actual weather conditions. Position-specific columns for QB, RB, WR, TE, and K.</p>
+            </div>
+            <button class="home-card-btn">Open →</button>
+          </div>
+
+        </div>
+
+        <!-- Inquiries -->
+        <div class="home-inquiries">
+          <span class="home-inq-label">For Inquiries</span>
+          <a href="mailto:patrickinwd@gmail.com" class="home-inq-email">patrickinwd@gmail.com</a>
+          <span class="home-inq-divider">·</span>
+          <span class="home-inq-note">Built by Patrick Inwood · KSU Sport Management · <a href="https://twitter.com/InwoodAnalytics" target="_blank" class="home-inq-link">@InwoodAnalytics</a></span>
+        </div>
+
+      </div>
+    </section>
+
     <!-- ── RANKINGS TAB ──────────────────────────────────────────────────── -->
-    <section id="tab-rankings" class="tab-content active">
+    <section id="tab-rankings" class="tab-content">
       <div class="toolbar">
         <div class="pos-filters">
           <button class="pos-btn active" data-pos="ALL">All</button>

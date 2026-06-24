@@ -994,6 +994,126 @@ tbody td { padding: .6rem 1rem; vertical-align: middle; }
 .gl-home-tag { font-size:.72rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.04em; }
 .gl-away-tag { font-size:.72rem; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:.04em; }
 
+/* ── Home Page ───────────────────────────────────────────────────────── */
+.home-wrap { max-width: 1100px; padding-bottom: 3rem; }
+
+.home-hero {
+  padding: 2.5rem 0 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+.home-hero-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: .6rem;
+}
+.home-hero-sub {
+  font-size: .97rem;
+  color: var(--text-2);
+  max-width: 560px;
+  line-height: 1.6;
+}
+.home-hero-sub strong { color: var(--text); }
+
+.home-features-label {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 1rem;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.home-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  cursor: pointer;
+  transition: border-color .18s, background .18s, transform .15s;
+}
+.home-card:hover {
+  border-color: rgba(56,189,248,.4);
+  background: var(--surface2);
+  transform: translateY(-2px);
+}
+.home-card-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.home-card-body { flex: 1; }
+.home-card-body h3 {
+  margin: 0 0 .35rem;
+  font-size: .97rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.home-card-body p {
+  margin: 0;
+  font-size: .83rem;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+.home-card-btn {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: .78rem;
+  font-weight: 600;
+  padding: .3rem .75rem;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.home-card:hover .home-card-btn {
+  background: var(--accent-dim);
+  border-color: rgba(56,189,248,.4);
+}
+
+.home-inquiries {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem .75rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: .84rem;
+}
+.home-inq-label {
+  font-weight: 700;
+  color: var(--text);
+  font-size: .8rem;
+  letter-spacing: .03em;
+}
+.home-inq-email {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.home-inq-email:hover { text-decoration: underline; }
+.home-inq-divider { color: var(--text-3); }
+.home-inq-note { color: var(--text-2); }
+.home-inq-link { color: var(--accent); text-decoration: none; }
+.home-inq-link:hover { text-decoration: underline; }
+
 /* ── Waiver Wire: Trending Adds section ─────────────────────────────── */
 .waiver-trending {
   margin-top: 2rem;
@@ -1090,6 +1210,9 @@ tbody td { padding: .6rem 1rem; vertical-align: middle; }
   .dst-settings-grid { grid-template-columns: 1fr; }
   .waiver-layout { grid-template-columns: 1fr; }
   .news-grid     { grid-template-columns: 1fr; }
+  .home-grid     { grid-template-columns: 1fr; }
+  .home-hero-title { font-size: 1.4rem; }
+  .home-inquiries { flex-direction: column; align-items: flex-start; gap: .4rem; }
   @media (max-width: 640px) {
     .trade-layout { grid-template-columns: 1fr; }
     .trade-vs { padding-top: 0; font-size: 1.2rem; }

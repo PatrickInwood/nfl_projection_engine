@@ -86,13 +86,22 @@ function injTag(status) {
 }
 
 // ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(tabId) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  const sec = document.getElementById(`tab-${tabId}`);
+  if (btn) btn.classList.add("active");
+  if (sec) sec.classList.add("active");
+}
+
 document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
-  });
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+// Home page feature cards → switch to their tab on click
+document.querySelectorAll(".home-card[data-goto]").forEach(card => {
+  card.addEventListener("click", () => switchTab(card.dataset.goto));
 });
 
 // ── Load & render rankings ─────────────────────────────────────────────────
