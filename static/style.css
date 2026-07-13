@@ -1055,8 +1055,19 @@ tbody td { padding: .6rem 1rem; vertical-align: middle; }
   transform: translateY(-2px);
 }
 .home-card-icon {
-  font-size: 1.5rem;
-  line-height: 1;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239,68,68,.10);
+  border-radius: 8px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.home-card-icon svg {
+  width: 20px;
+  height: 20px;
 }
 .home-card-body { flex: 1; }
 .home-card-body h3 {
