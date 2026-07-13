@@ -1389,7 +1389,7 @@ function _renderGameLog(games, pos) {
   let lastSeason = null;
   const rows = [];
 
-  games.forEach(game => {
+  games.forEach((game, gi) => {
     if (game.season !== lastSeason) {
       rows.push(`<tr class="gl-season-row">
         <td colspan="${cols.length}"><span>${game.season} Regular Season</span></td>
@@ -1397,10 +1397,11 @@ function _renderGameLog(games, pos) {
       lastSeason = game.season;
     }
 
+    const gamePts = ptsArr[gi];
     let rowCls = "";
-    if      (game.pts_ppr >= avgPts * 1.45) rowCls = "gl-row-elite";
-    else if (game.pts_ppr >= avgPts * 1.15) rowCls = "gl-row-good";
-    else if (game.pts_ppr <  avgPts * 0.55) rowCls = "gl-row-poor";
+    if      (gamePts >= avgPts * 1.45) rowCls = "gl-row-elite";
+    else if (gamePts >= avgPts * 1.15) rowCls = "gl-row-good";
+    else if (gamePts <  avgPts * 0.55) rowCls = "gl-row-poor";
 
     let oppCell;
     if (game.opponent && game.opponent !== "TBD") {
