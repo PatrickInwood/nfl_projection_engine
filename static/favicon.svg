@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#0c0608"/>
+  <!-- Football shape -->
+  <ellipse cx="16" cy="16" rx="10" ry="6.5" fill="#c2410c" stroke="#ef4444" stroke-width="1.2"/>
+  <!-- Lace -->
+  <line x1="16" y1="10.5" x2="16" y2="21.5" stroke="#fef2f2" stroke-width="1" stroke-linecap="round"/>
+  <line x1="13.5" y1="13.5" x2="18.5" y2="13.5" stroke="#fef2f2" stroke-width="1" stroke-linecap="round"/>
+  <line x1="13.5" y1="16" x2="18.5" y2="16" stroke="#fef2f2" stroke-width="1" stroke-linecap="round"/>
+  <line x1="13.5" y1="18.5" x2="18.5" y2="18.5" stroke="#fef2f2" stroke-width="1" stroke-linecap="round"/>
+</svg>
