@@ -396,17 +396,32 @@ def api_explain():
     p2       = data.get("player2", {})
     scoring  = data.get("scoring", "PPR")
 
+    def _fmt_player_ctx(p):
+        lines = [
+            f"  - Projected: {p['projection']:.2f} pts  |  Rank #{p['rank']}",
+        ]
+        if p.get("opponent") and p["opponent"] != "TBD":
+            lines.append(f"  - Matchup: {p['opponent']}")
+        if p.get("injury_status") and p["injury_status"].lower() not in ("active", "none", ""):
+            lines.append(f"  - Injury: {p['injury_status']}")
+        if p.get("weather"):
+            w = p["weather"]
+            if w.get("indoor"):
+                lines.append("  - Weather: Indoor dome")
+            else:
+                cond = f"{w.get('condition','?')} · {w.get('temp_f','?')}°F · Wind {w.get('wind_mph',0)} mph"
+                lines.append(f"  - Weather: {cond}")
+        return "\n".join(lines)
+
     prompt = f"""You are an expert fantasy football analyst. A user is deciding who to START this week in a {scoring.upper()} league.
 
 Player 1: {p1['name']} ({p1['position']}, {p1['team']})
-  - Projected points: {p1['projection']:.2f}
-  - Overall rank: #{p1['rank']}
+{_fmt_player_ctx(p1)}
 
 Player 2: {p2['name']} ({p2['position']}, {p2['team']})
-  - Projected points: {p2['projection']:.2f}
-  - Overall rank: #{p2['rank']}
+{_fmt_player_ctx(p2)}
 
-Give a concise 2-3 sentence Start/Sit recommendation. Lead with who to start and why, mention the projection edge, and note anything relevant about matchup, format, or risk. Be direct and confident."""
+Give a concise 2-3 sentence Start/Sit recommendation. Lead with who to start and why, mention the projection edge, and note anything relevant about matchup, injury risk, or weather. Be direct and confident."""
 
     try:
         client   = _anthropic.Anthropic(api_key=api_key)
@@ -451,7 +466,15 @@ def api_trade():
     def fmt_players(players):
         lines = []
         for p in players:
-            lines.append(f"  - {p['name']} ({p['position']}, {p['team']}) — Proj: {p['projection']:.2f} pts, Rank #{p['rank']}")
+            line = f"  - {p['name']} ({p['position']}, {p['team']}) — Proj: {p['projection']:.2f} pts, Rank #{p['rank']}"
+            extras = []
+            if p.get("opponent") and p["opponent"] != "TBD":
+                extras.append(f"vs {p['opponent']}")
+            if p.get("injury_status") and p["injury_status"].lower() not in ("active", "none", ""):
+                extras.append(p["injury_status"])
+            if extras:
+                line += f" [{', '.join(extras)}]"
+            lines.append(line)
         return "\n".join(lines)
 
     prompt = f"""You are an expert fantasy football analyst evaluating a trade in a {scoring} league.
@@ -462,7 +485,7 @@ YOU ARE GIVING:
 YOU ARE RECEIVING:
 {fmt_players(receiving)}
 
-Evaluate this trade from the perspective of the person giving away the first group and receiving the second group. Give a clear verdict (Win / Lose / Fair) and 2-3 sentences of reasoning. Consider total projected value, positional scarcity, and roster balance. Be direct and confident."""
+Evaluate this trade from the perspective of the person giving away the first group and receiving the second group. Give a clear verdict (Win / Lose / Fair) and 2-3 sentences of reasoning. Consider total projected value, positional scarcity, injury risk, and roster balance. Be direct and confident."""
 
     try:
         client  = _anthropic.Anthropic(api_key=api_key)
@@ -507,10 +530,18 @@ def api_waiver():
         return jsonify({"error": "Add at least one available player to analyze."}), 400
 
     def fmt(players):
-        return "\n".join(
-            f"  - {p['name']} ({p['position']}, {p['team']}) — Proj: {p['projection']:.2f} pts, Rank #{p['rank']}"
-            for p in players
-        )
+        lines = []
+        for p in players:
+            line = f"  - {p['name']} ({p['position']}, {p['team']}) — Proj: {p['projection']:.2f} pts, Rank #{p['rank']}"
+            extras = []
+            if p.get("opponent") and p["opponent"] != "TBD":
+                extras.append(f"vs {p['opponent']}")
+            if p.get("injury_status") and p["injury_status"].lower() not in ("active", "none", ""):
+                extras.append(p["injury_status"])
+            if extras:
+                line += f" [{', '.join(extras)}]"
+            lines.append(line)
+        return "\n".join(lines)
 
     roster_section = f"MY CURRENT ROSTER:\n{fmt(roster)}\n\n" if roster else ""
     need_section   = f"POSITIONAL NEED: {need}\n\n" if need else ""

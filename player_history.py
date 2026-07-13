@@ -12,6 +12,7 @@ SLEEPER_BASE = "https://api.sleeper.app/v1"
 
 # Approximate first Sunday of each NFL regular season
 _WEEK1_SUNDAY = {
+    "2026": datetime(2026, 9, 6),
     "2025": datetime(2025, 9, 7),
     "2024": datetime(2024, 9, 8),
     "2023": datetime(2023, 9, 10),
@@ -236,6 +237,7 @@ def fetch_game_log(player_id: str, position: str, seasons=None) -> list:
             opponent = opp_raw.upper() if opp_raw else "TBD"
             home_raw = raw.get("home")
             is_home  = bool(int(home_raw)) if home_raw is not None else None
+            home_tm  = team  # assume player's team is home when schedule unavailable
 
         date_str = _week_date(season, week)
         stadium  = get_stadium(home_tm) if home_tm else None
@@ -250,17 +252,21 @@ def fetch_game_log(player_id: str, position: str, seasons=None) -> list:
             elif date_str:
                 weather_needed.append((len(games), stadium["lat"], stadium["lon"], date_str))
 
-        pts = float(raw.get("pts_ppr") or raw.get("pts_std") or 0)
+        pts_ppr      = float(raw.get("pts_ppr")      or raw.get("pts_std") or 0)
+        pts_half_ppr = float(raw.get("pts_half_ppr") or pts_ppr)
+        pts_std      = float(raw.get("pts_std")      or pts_ppr)
 
         games.append({
-            "season":   season,
-            "week":     week,
-            "date":     date_str,
-            "opponent": opponent,
-            "home":     is_home,   # True=home, False=away, None=unknown
-            "stats":    _extract_stats(raw, position),
-            "pts_ppr":  round(pts, 2),
-            "weather":  weather,
+            "season":       season,
+            "week":         week,
+            "date":         date_str,
+            "opponent":     opponent,
+            "home":         is_home,   # True=home, False=away, None=unknown
+            "stats":        _extract_stats(raw, position),
+            "pts_ppr":      round(pts_ppr,      2),
+            "pts_half_ppr": round(pts_half_ppr, 2),
+            "pts_std":      round(pts_std,       2),
+            "weather":      weather,
         })
 
     # ── Step 5: fetch historical weather in parallel ───────────────────────

@@ -193,8 +193,8 @@ def fetch_week_players(scoring="ppr"):
             continue
 
         matchup   = matchup_map.get(team, {})
-        opponent  = matchup.get("label", "TBD") if isinstance(matchup, dict) else "TBD"
-        home_team = matchup.get("home")         if isinstance(matchup, dict) else None
+        opponent  = matchup.get("opp", "TBD") if isinstance(matchup, dict) else "TBD"
+        home_team = matchup.get("home")        if isinstance(matchup, dict) else None
 
         players[name] = {
             "name":          name,

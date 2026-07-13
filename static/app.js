@@ -138,6 +138,18 @@ async function loadRankings() {
     document.getElementById("week-badge").textContent = `Week ${data.week} · ${data.season}`;
   }
 
+  // Auto-set Game Log season to the current NFL season on first load
+  if (data.season && !_glSeasonsFixed) {
+    glSeasons = data.season;
+    // Sync the active season button label if one matches
+    document.querySelectorAll(".gl-season-btn").forEach(btn => {
+      if (btn.dataset.seasons === data.season) {
+        document.querySelectorAll(".gl-season-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      }
+    });
+  }
+
   renderRankingsTable(data.players);
 }
 
@@ -287,9 +299,10 @@ async function loadDst() {
 
 document.getElementById("dst-recalc-btn").addEventListener("click", loadDst);
 
-// Load D/ST when tab is clicked
+// Load D/ST when tab is clicked — cache result, recalc only on button click
+let _dstLoaded = false;
 document.querySelector('[data-tab="dst"]').addEventListener("click", () => {
-  loadDst();
+  if (!_dstLoaded) { loadDst(); _dstLoaded = true; }
 });
 
 // Roster Builder tab — ensure ALL positions (K + D/ST) are in the search pool
@@ -324,6 +337,17 @@ document.querySelector('[data-tab="roster"]').addEventListener("click", async ()
   }
 });
 
+// ── Ensure allPlayers is populated before using search-dependent tabs ─────
+async function ensurePlayersLoaded() {
+  if (!allPlayers.length) await loadRankings();
+}
+
+document.querySelector('[data-tab="search"]').addEventListener("click",   ensurePlayersLoaded);
+document.querySelector('[data-tab="startsit"]').addEventListener("click", ensurePlayersLoaded);
+document.querySelector('[data-tab="trade"]').addEventListener("click",    ensurePlayersLoaded);
+document.querySelector('[data-tab="waiver"]').addEventListener("click",   ensurePlayersLoaded);
+document.querySelector('[data-tab="gamelog"]').addEventListener("click",  ensurePlayersLoaded);
+
 // ── Player Search tab ──────────────────────────────────────────────────────
 document.getElementById("search-input").addEventListener("input", function () {
   const q = this.value.toLowerCase().trim();
@@ -334,7 +358,7 @@ document.getElementById("search-input").addEventListener("input", function () {
   const matches = allPlayers.filter(p => p.name.toLowerCase().includes(q)).slice(0, 20);
 
   if (!matches.length) {
-    container.innerHTML = `<p style="color:#94a3b8;font-size:.88rem;">No players found for "${this.value}"</p>`;
+    container.innerHTML = `<p style="color:var(--text-2);font-size:.88rem;">No players found for "${this.value}"</p>`;
     return;
   }
 
@@ -344,7 +368,7 @@ document.getElementById("search-input").addEventListener("input", function () {
         ${headshot(p.player_id, p.name, 48)}
         <div>
           <div class="pc-name">${p.name}</div>
-          <div>${posBadge(p.position)} <span style="color:#64748b;font-size:.78rem;">${p.team}</span> ${p.opponent && p.opponent !== "TBD" ? `<span style="color:#94a3b8;font-size:.75rem;">${p.opponent}</span>` : ""} ${injTag(p.injury_status)}</div>
+          <div>${posBadge(p.position)} <span style="color:var(--text-3);font-size:.78rem;">${p.team}</span> ${p.opponent && p.opponent !== "TBD" ? `<span style="color:var(--text-2);font-size:.75rem;">${p.opponent}</span>` : ""} ${injTag(p.injury_status)}</div>
           ${p.weather ? `<div style="margin-top:.2rem;">${weatherBadge(p.weather)}</div>` : ""}
         </div>
       </div>
@@ -388,7 +412,7 @@ rosterSearch.addEventListener("input", function () {
     <li data-name="${p.name}">
       ${posBadge(p.position)}
       <span>${p.name}</span>
-      <span style="color:#94a3b8;font-size:.78rem;margin-left:auto;">${p.team} · ${p.projection.toFixed(1)} pts</span>
+      <span style="color:var(--text-2);font-size:.78rem;margin-left:auto;">${p.team} · ${p.projection.toFixed(1)} pts</span>
     </li>
   `).join("");
   rosterDropdown.classList.remove("hidden");
@@ -422,7 +446,7 @@ function renderRosterList() {
   const countBar = document.getElementById("roster-count-bar");
 
   if (!myRoster.length) {
-    list.innerHTML = `<li style="color:#94a3b8;font-size:.83rem;padding:.5rem 0;">No players added yet.</li>`;
+    list.innerHTML = `<li style="color:var(--text-2);font-size:.83rem;padding:.5rem 0;">No players added yet.</li>`;
     countBar.classList.add("hidden");
     return;
   }
@@ -468,7 +492,8 @@ document.getElementById("clear-roster-btn").addEventListener("click", () => {
 // Optimize lineup
 document.getElementById("optimize-btn").addEventListener("click", async () => {
   if (!myRoster.length) {
-    alert("Add some players to your roster first.");
+    document.getElementById("lineup-output").innerHTML =
+      `<div class="lineup-placeholder" style="color:var(--accent);">Add players to your roster first, then click Optimize.</div>`;
     return;
   }
 
@@ -509,7 +534,7 @@ function renderLineup(data) {
     <div class="lineup-slot">
       <span class="slot-label">${p.slot}</span>
       ${posBadge(p.position)}
-      <span class="ls-name">${p.name} <small style="color:#94a3b8">${p.team}</small></span>
+      <span class="ls-name">${p.name} <small style="color:var(--text-2)">${p.team}</small></span>
       <span class="ls-pts">${p.projection.toFixed(2)}</span>
     </div>
   `).join("");
@@ -520,7 +545,7 @@ function renderLineup(data) {
       <div class="lineup-slot" style="opacity:.65">
         <span class="slot-label">${p.slot}</span>
         ${posBadge(p.position)}
-        <span class="ls-name">${p.name} <small style="color:#94a3b8">${p.team}</small></span>
+        <span class="ls-name">${p.name} <small style="color:var(--text-2)">${p.team}</small></span>
         <span class="ls-pts">${p.projection.toFixed(2)}</span>
       </div>
     `).join("")}
@@ -550,7 +575,7 @@ function setupStartSit(inputId, dropdownId, cardId) {
     dropdown.innerHTML = matches.map(p => `
       <li data-name="${p.name}">
         ${posBadge(p.position)} <span>${p.name}</span>
-        <span style="color:#94a3b8;font-size:.78rem;margin-left:auto;">${p.projection.toFixed(1)} pts</span>
+        <span style="color:var(--text-2);font-size:.78rem;margin-left:auto;">${p.projection.toFixed(1)} pts</span>
       </li>
     `).join("");
     dropdown.classList.remove("hidden");
@@ -636,8 +661,8 @@ async function explainStartSit() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        player1: { name: p1.name, position: p1.position, team: p1.team, projection: p1.projection, rank: p1.rank },
-        player2: { name: p2.name, position: p2.position, team: p2.team, projection: p2.projection, rank: p2.rank },
+        player1: { name: p1.name, position: p1.position, team: p1.team, projection: p1.projection, rank: p1.rank, injury_status: p1.injury_status, opponent: p1.opponent, weather: p1.weather },
+        player2: { name: p2.name, position: p2.position, team: p2.team, projection: p2.projection, rank: p2.rank, injury_status: p2.injury_status, opponent: p2.opponent, weather: p2.weather },
         scoring: currentScoring,
       }),
     });
@@ -680,7 +705,7 @@ function setupTradeSide(inputId, dropdownId, listId, side) {
         ${headshot(p.player_id, p.name, 28)}
         ${posBadge(p.position)}
         <span>${p.name}</span>
-        <span style="color:#94a3b8;font-size:.78rem;margin-left:auto;">${p.team} · ${p.projection.toFixed(1)} pts</span>
+        <span style="color:var(--text-2);font-size:.78rem;margin-left:auto;">${p.team} · ${p.projection.toFixed(1)} pts</span>
       </li>
     `).join("");
     dropdown.classList.remove("hidden");
@@ -743,7 +768,9 @@ document.getElementById("clear-trade-btn").addEventListener("click", () => {
 document.getElementById("analyze-trade-btn").addEventListener("click", async () => {
   const { give, receive } = tradeSides;
   if (!give.length || !receive.length) {
-    alert("Add at least one player to each side of the trade.");
+    const result = document.getElementById("trade-result");
+    result.innerHTML = `<p style="color:var(--accent);font-size:.88rem;">Add at least one player to each side of the trade.</p>`;
+    result.classList.remove("hidden");
     return;
   }
 
@@ -758,6 +785,7 @@ document.getElementById("analyze-trade-btn").addEventListener("click", async () 
   const toPayload = players => players.map(p => ({
     name: p.name, position: p.position, team: p.team,
     projection: p.projection, rank: p.rank,
+    injury_status: p.injury_status, opponent: p.opponent,
   }));
 
   try {
@@ -811,7 +839,7 @@ function setupWaiverSide(inputId, dropdownId, listId, side) {
         ${headshot(p.player_id, p.name, 28)}
         ${posBadge(p.position)}
         <span>${p.name}</span>
-        <span style="color:#94a3b8;font-size:.78rem;margin-left:auto;">${p.team} · ${p.projection.toFixed(1)} pts</span>
+        <span style="color:var(--text-2);font-size:.78rem;margin-left:auto;">${p.team} · ${p.projection.toFixed(1)} pts</span>
       </li>
     `).join("");
     dropdown.classList.remove("hidden");
@@ -884,6 +912,7 @@ document.getElementById("waiver-analyze-btn").addEventListener("click", async ()
   const toPayload = players => players.map(p => ({
     name: p.name, position: p.position, team: p.team,
     projection: p.projection, rank: p.rank,
+    injury_status: p.injury_status, opponent: p.opponent,
   }));
 
   try {
@@ -898,9 +927,15 @@ document.getElementById("waiver-analyze-btn").addEventListener("click", async ()
       }),
     });
     const data = await res.json();
-    result.innerHTML = data.error
-      ? `<p style="color:#ef4444;">${data.error}</p>`
-      : `<div class="trade-analysis verdict-win">${renderMarkdown(data.analysis)}</div>`;
+    if (data.error) {
+      result.innerHTML = `<p style="color:var(--accent);">${data.error}</p>`;
+    } else {
+      const waiverText = data.analysis;
+      const waiverClass = /\bdo not\b|\bpass\b|\bskip\b|\bavoid\b/i.test(waiverText) ? "verdict-lose"
+                        : /\bhigh.risk\b|\binjur/i.test(waiverText)                   ? "verdict-fair"
+                        : "verdict-win";
+      result.innerHTML = `<div class="trade-analysis ${waiverClass}">${renderMarkdown(waiverText)}</div>`;
+    }
     result.classList.remove("hidden");
   } catch (err) {
     result.innerHTML = `<p style="color:#ef4444;">Could not reach Claude. Check API key.</p>`;
@@ -912,7 +947,10 @@ document.getElementById("waiver-analyze-btn").addEventListener("click", async ()
 });
 
 // ── Injury Report ─────────────────────────────────────────────────────────
-document.querySelector('[data-tab="news"]').addEventListener("click", loadNews);
+let _newsLoaded = false;
+document.querySelector('[data-tab="news"]').addEventListener("click", () => {
+  if (!_newsLoaded) { loadNews(); _newsLoaded = true; }
+});
 
 async function loadNews() {
   const injuryEl = document.getElementById("injury-list");
@@ -1006,22 +1044,25 @@ document.querySelector('[data-tab="bye"]').addEventListener("click", renderByeCa
 async function renderByeCalendar() {
   const thead = document.getElementById("bye-thead");
   const tbody = document.getElementById("bye-tbody");
-  if (!thead || !tbody || tbody.dataset.rendered) return;
-  tbody.dataset.rendered = "1";
+  if (!thead || !tbody) return;
 
-  // Fetch live bye weeks from Sleeper cache; fall back to 2025 hardcoded
+  // Fetch live bye weeks; fall back to 2025 hardcoded
   let byeData = _BYE_FALLBACK;
   try {
     const res = await fetch("/api/bye_weeks");
     if (res.ok) {
       const data = await res.json();
       if (data.byes && Object.keys(data.byes).length >= 28) {
-        byeData = data; // live data has all 32 teams
+        byeData = data;
       }
     }
   } catch (_) {}
 
   const { season, byes } = byeData;
+
+  // Skip re-render if we already built this season's table
+  if (tbody.dataset.renderedSeason === season) return;
+  tbody.dataset.renderedSeason = season;
 
   // Update tab heading to show the season
   const heading = document.querySelector("#tab-bye h2");
@@ -1072,8 +1113,9 @@ loadRankings();
 // GAME LOG TAB
 // ═══════════════════════════════════════════════════════════════════════════
 
-let glPlayer  = null;   // { name, player_id, position, team }
-let glSeasons = "2025"; // comma-separated string for API
+let glPlayer        = null;   // { name, player_id, position, team }
+let glSeasons       = "2025"; // comma-separated string for API — updated after first rankings load
+let _glSeasonsFixed = false;  // true once user has manually clicked a season toggle
 
 // ── Search ─────────────────────────────────────────────────────────────────
 const glSearchInput = document.getElementById("gl-search");
@@ -1131,6 +1173,7 @@ document.querySelectorAll(".gl-season-btn").forEach(btn => {
     document.querySelectorAll(".gl-season-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     glSeasons = btn.dataset.seasons;
+    _glSeasonsFixed = true; // user explicitly chose — don't auto-override
     if (glPlayer) _fetchGameLog();
   });
 });
@@ -1306,7 +1349,8 @@ function _glAvgRow(games, pos, numCols) {
              <td>—</td><td>—</td><td>—</td><td>—</td>`;
   }
 
-  const avgPts = (games.reduce((s, g) => s + g.pts_ppr, 0) / n).toFixed(1);
+  const _ptsF  = currentScoring === "half_ppr" ? "pts_half_ppr" : currentScoring === "std" ? "pts_std" : "pts_ppr";
+  const avgPts = (games.reduce((s, g) => s + (g[_ptsF] ?? g.pts_ppr), 0) / n).toFixed(1);
   return `<tr class="gl-avg-row">
     <td colspan="3">${n} games · Season avg</td>
     ${cells}
@@ -1336,7 +1380,10 @@ function _renderGameLog(games, pos) {
   const cols = _glCols(pos);
   thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>`;
 
-  const ptsArr = games.map(g => g.pts_ppr);
+  const ptsField = currentScoring === "half_ppr" ? "pts_half_ppr"
+                 : currentScoring === "std"      ? "pts_std"
+                 : "pts_ppr";
+  const ptsArr = games.map(g => g[ptsField] ?? g.pts_ppr);
   const avgPts = ptsArr.reduce((a, b) => a + b, 0) / ptsArr.length;
 
   let lastSeason = null;
@@ -1365,13 +1412,14 @@ function _renderGameLog(games, pos) {
       oppCell = `<span class="gl-dim">—</span>`;
     }
 
+    const fpts = (game[ptsField] ?? game.pts_ppr).toFixed(1);
     rows.push(`<tr class="${rowCls}">
       <td class="gl-dim">Wk&nbsp;${game.week}</td>
       <td class="gl-dim">${_glFmtDate(game.date)}</td>
       <td class="gl-matchup">${oppCell}</td>
       ${_glStatCells(game, pos)}
       ${_glWeatherCell(game.weather)}
-      <td class="gl-fpts">${game.pts_ppr.toFixed(1)}</td>
+      <td class="gl-fpts">${fpts}</td>
     </tr>`);
   });
 
