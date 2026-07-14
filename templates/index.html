@@ -9,28 +9,60 @@
 </head>
 <body>
 
-  <!-- ── Header ─────────────────────────────────────────────────────────── -->
-  <header>
-    <div class="header-inner">
-      <div class="logo">🏈 <span class="logo-text">NFL Projection Engine</span></div>
+  <!-- ── Command Bar ──────────────────────────────────────────────────── -->
+  <div class="cmd-bar">
+    <div class="cmd-bar-inner">
+      <span class="cmd-logo">🏈</span>
+      <div class="cmd-search-wrap">
+        <svg class="cmd-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="cmd-input" class="cmd-input" placeholder="Search players or jump to any section… (⌘K)" autocomplete="off" />
+        <div id="cmd-results" class="cmd-results hidden"></div>
+      </div>
       <div id="week-badge" class="week-badge">Loading...</div>
     </div>
-    <nav class="tab-nav">
-      <button class="tab-btn active" data-tab="home">Home</button>
-      <button class="tab-btn" data-tab="rankings">Rankings</button>
-      <button class="tab-btn" data-tab="dst">D/ST</button>
-      <button class="tab-btn" data-tab="search">Player Search</button>
-      <button class="tab-btn" data-tab="roster">Roster Builder</button>
-      <button class="tab-btn" data-tab="startsit">Start / Sit</button>
-      <button class="tab-btn" data-tab="trade">Trade Analyzer</button>
-      <button class="tab-btn" data-tab="waiver">Waiver Wire</button>
-      <button class="tab-btn" data-tab="news">Injury Report</button>
-      <button class="tab-btn" data-tab="bye">Bye Week</button>
-      <button class="tab-btn" data-tab="gamelog">Game Log</button>
-    </nav>
-  </header>
+  </div>
 
-  <main>
+  <!-- ── App Body ───────────────────────────────────────────────────────── -->
+  <div class="app-body">
+
+    <!-- Icon Sidebar -->
+    <nav class="sidebar">
+      <button class="nav-item active" data-tab="home" title="Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </button>
+      <button class="nav-item" data-tab="rankings" title="Rankings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="2" width="4" height="19"/><line x1="1" y1="21" x2="23" y2="21"/></svg>
+      </button>
+      <button class="nav-item" data-tab="dst" title="D/ST Rankings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </button>
+      <button class="nav-item" data-tab="search" title="Player Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="nav-item" data-tab="roster" title="Roster Builder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <button class="nav-item" data-tab="startsit" title="Start / Sit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </button>
+      <button class="nav-item" data-tab="trade" title="Trade Analyzer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M21 3L9 15"/><path d="M8 21H3v-5"/><path d="M3 21l12-12"/></svg>
+      </button>
+      <button class="nav-item" data-tab="waiver" title="Waiver Wire">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      </button>
+      <button class="nav-item" data-tab="news" title="Injury Report">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </button>
+      <button class="nav-item" data-tab="bye" title="Bye Calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
+      <button class="nav-item" data-tab="gamelog" title="Game Log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="3" y2="3"/><line x1="3" y1="21" x2="21" y2="21"/><polyline points="6 15 10 9 14 12 18 6"/><circle cx="6" cy="15" r="1.5" fill="currentColor" stroke="none"/><circle cx="10" cy="9" r="1.5" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="1.5" fill="currentColor" stroke="none"/></svg>
+      </button>
+    </nav>
+
+    <main>
 
     <!-- ── HOME TAB ──────────────────────────────────────────────────────── -->
     <section id="tab-home" class="tab-content active">
@@ -489,7 +521,9 @@
       </div>
     </section>
 
-  </main>
+    </main>
+
+  </div><!-- /.app-body -->
 
   <script src="/static/app.js"></script>
 </body>

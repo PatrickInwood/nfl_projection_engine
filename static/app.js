@@ -87,21 +87,123 @@ function injTag(status) {
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 function switchTab(tabId) {
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  const btn = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
   const sec = document.getElementById(`tab-${tabId}`);
   if (btn) btn.classList.add("active");
   if (sec) sec.classList.add("active");
 }
 
-document.querySelectorAll(".tab-btn").forEach(btn => {
+document.querySelectorAll(".nav-item").forEach(btn => {
   btn.addEventListener("click", () => switchTab(btn.dataset.tab));
 });
 
 // Home page feature cards → switch to their tab on click
 document.querySelectorAll(".home-card[data-goto]").forEach(card => {
   card.addEventListener("click", () => switchTab(card.dataset.goto));
+});
+
+// ── Command Bar ────────────────────────────────────────────────────────────
+const CMD_SECTIONS = [
+  { label: "Rankings",       tab: "rankings", svg: '<rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="2" width="4" height="19"/><line x1="1" y1="21" x2="23" y2="21"/>' },
+  { label: "Player Search",  tab: "search",   svg: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
+  { label: "Start / Sit",    tab: "startsit", svg: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>' },
+  { label: "Trade Analyzer", tab: "trade",    svg: '<path d="M16 3h5v5"/><path d="M21 3L9 15"/><path d="M8 21H3v-5"/><path d="M3 21l12-12"/>' },
+  { label: "Waiver Wire",    tab: "waiver",   svg: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>' },
+  { label: "D/ST Rankings",  tab: "dst",      svg: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' },
+  { label: "Roster Builder", tab: "roster",   svg: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
+  { label: "Injury Report",  tab: "news",     svg: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
+  { label: "Bye Calendar",   tab: "bye",      svg: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>' },
+  { label: "Game Log",       tab: "gamelog",  svg: '<line x1="3" y1="21" x2="3" y2="3"/><line x1="3" y1="21" x2="21" y2="21"/><polyline points="6 15 10 9 14 12 18 6"/>' },
+];
+
+const cmdInput   = document.getElementById("cmd-input");
+const cmdResults = document.getElementById("cmd-results");
+
+// ⌘K / Ctrl+K shortcut
+document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    e.preventDefault();
+    cmdInput.focus();
+    cmdInput.select();
+  }
+  if (e.key === "Escape" && document.activeElement === cmdInput) {
+    cmdInput.blur();
+    cmdResults.classList.add("hidden");
+  }
+});
+
+function _renderCmdResults(q) {
+  const navMatches    = CMD_SECTIONS.filter(s => s.label.toLowerCase().includes(q));
+  const playerMatches = allPlayers.filter(p => p.name.toLowerCase().includes(q)).slice(0, 6);
+
+  if (!navMatches.length && !playerMatches.length) {
+    cmdResults.classList.add("hidden");
+    return;
+  }
+
+  let html = "";
+
+  if (playerMatches.length) {
+    html += playerMatches.map(p => `
+      <div class="cmd-result-item" onclick="cmdGoPlayer(${JSON.stringify(p.name)})">
+        ${headshot(p.player_id, p.name, 26)}
+        <div style="min-width:0;overflow:hidden;">
+          <span style="font-weight:600;color:var(--text);font-size:.88rem;">${p.name}</span>
+          <span style="font-size:.75rem;color:var(--text-2);margin-left:.4rem;">${p.position} · ${p.team} · ${p.projection.toFixed(1)} pts</span>
+        </div>
+      </div>`).join("");
+  }
+
+  if (navMatches.length) {
+    html += `<div class="cmd-result-section">Jump to</div>`;
+    html += navMatches.map(s => `
+      <div class="cmd-result-nav" onclick="cmdGoTab('${s.tab}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${s.svg}</svg>
+        <span>${s.label}</span>
+      </div>`).join("");
+  }
+
+  cmdResults.innerHTML = html;
+  cmdResults.classList.remove("hidden");
+}
+
+cmdInput.addEventListener("input", function () {
+  const q = this.value.toLowerCase().trim();
+  if (!q) { cmdResults.classList.add("hidden"); return; }
+  _renderCmdResults(q);
+});
+
+cmdInput.addEventListener("focus", function () {
+  const q = this.value.toLowerCase().trim();
+  if (q) _renderCmdResults(q);
+});
+
+function cmdGoPlayer(name) {
+  cmdInput.value = "";
+  cmdResults.classList.add("hidden");
+  cmdInput.blur();
+  switchTab("search");
+  ensurePlayersLoaded().then(() => {
+    const si = document.getElementById("search-input");
+    si.value = name;
+    si.dispatchEvent(new Event("input"));
+  });
+}
+
+function cmdGoTab(tabId) {
+  cmdInput.value = "";
+  cmdResults.classList.add("hidden");
+  cmdInput.blur();
+  switchTab(tabId);
+}
+
+// Close results when clicking outside the command bar
+document.addEventListener("click", e => {
+  if (!e.target.closest(".cmd-search-wrap")) {
+    cmdResults.classList.add("hidden");
+  }
 });
 
 // ── Load & render rankings ─────────────────────────────────────────────────
@@ -552,7 +654,7 @@ function renderLineup(data) {
   ` : "";
 
   const notFoundNote = data.not_found?.length
-    ? `<p style="color:#ef4444;font-size:.78rem;margin-top:.5rem;">Not found: ${data.not_found.join(", ")}</p>`
+    ? `<p style="color:var(--red);font-size:.78rem;margin-top:.5rem;">Not found: ${data.not_found.join(", ")}</p>`
     : "";
 
   out.innerHTML = starterRows + benchRows + notFoundNote;
@@ -797,7 +899,7 @@ document.getElementById("analyze-trade-btn").addEventListener("click", async () 
     const data = await res.json();
 
     if (data.error) {
-      result.innerHTML = `<p style="color:#ef4444;">${data.error}</p>`;
+      result.innerHTML = `<p style="color:var(--red);">${data.error}</p>`;
     } else {
       // Detect verdict keyword for color coding
       const text = data.analysis;
@@ -808,7 +910,7 @@ document.getElementById("analyze-trade-btn").addEventListener("click", async () 
     }
     result.classList.remove("hidden");
   } catch (err) {
-    result.innerHTML = `<p style="color:#ef4444;">Could not reach Claude. Check API key.</p>`;
+    result.innerHTML = `<p style="color:var(--red);">Could not reach Claude. Check API key.</p>`;
     result.classList.remove("hidden");
   }
 
@@ -938,7 +1040,7 @@ document.getElementById("waiver-analyze-btn").addEventListener("click", async ()
     }
     result.classList.remove("hidden");
   } catch (err) {
-    result.innerHTML = `<p style="color:#ef4444;">Could not reach Claude. Check API key.</p>`;
+    result.innerHTML = `<p style="color:var(--red);">Could not reach Claude. Check API key.</p>`;
     result.classList.remove("hidden");
   }
 
@@ -973,7 +1075,7 @@ async function loadNews() {
       `).join("");
     }
   } catch (err) {
-    injuryEl.innerHTML = `<p style="color:#ef4444;">Error loading injury data.</p>`;
+    injuryEl.innerHTML = `<p style="color:var(--red);">Error loading injury data.</p>`;
   }
 }
 
@@ -1007,7 +1109,7 @@ async function loadTrending() {
       `).join("");
     }
   } catch (err) {
-    trendEl.innerHTML = `<p style="color:#ef4444;">Error loading trending data.</p>`;
+    trendEl.innerHTML = `<p style="color:var(--red);">Error loading trending data.</p>`;
   }
 }
 
